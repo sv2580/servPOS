@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+ //neviem zatial co tu ideme robit
 
  int client(int argc, char *argv[])
 {
