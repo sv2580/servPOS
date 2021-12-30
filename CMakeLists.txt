@@ -5,4 +5,4 @@ set(CMAKE_C_STANDARD 99)
 
 add_executable(sem main.c)
 
-target_link_libraries(sem pthred)
+target_link_libraries(sem pthread)
