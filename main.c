@@ -14,56 +14,55 @@
 typedef struct dataClient{
     char * login;
     int socket;
+    int id;
 } DATAC;
 
 DATAC poleKlientov[100];
-int * pocet = 0;
+int pocet = 0;
 
 void * komunikacia(void * data){
+
     DATAC * datac = data;
     int n;
     char buffer[256];
     int newsockfd = datac->socket;
     char login[100];
     bzero(login,100);
-
-    recv(newsockfd, login, 100, 0);
-
     n = read(newsockfd, login, 99);
     if (n < 0)
     {
         perror("Error reading from socket");
-        return 4;
     }
-    printf("Here is the login: %s\n", login);
+    strcpy((datac->login),login);
+    sprintf(buffer,"Here is the login: %s\n", (datac->login));
+    printf("%s", buffer);
 
 
-
-    datac->login = strcpy(datac->login, login);
-    poleKlientov[*pocet] = *datac;
-    (*pocet)++;
-    printf("Som tu");
-
-
+    poleKlientov[pocet] = *datac;
+    (pocet)++;
 
 
     char contact[100];
-
-    while(1){
-        recv(newsockfd, contact, 100, 0);
-        n = read(newsockfd, contact, 100);
-        if (n > 0)
-        {
-            printf("Som tu\n");
-
-            break;
-        }
-        printf("Som tu\n");
+    n = read(newsockfd, contact, 100);
+    if (n < 0)
+    {
+        perror("Error reading from socket");
     }
 
-    for (int i = 0; i < pocet; ++i) {
-        if(poleKlientov[i].login == contact)
+    printf("Som tu");
+
+    bzero(contact,100);
+
+    sprintf(buffer,"Here is the contact: %s\n", contact);
+    printf("%s", buffer);
+
+/*
+    int nasielSA = 0;
+    for (int i = 0; i < (*pocet); ++i) {
+
+        if((*poleKlientov[i]).login == contact)
         {
+            nasielSA = 1;
             bzero(buffer,256);
             n = read(newsockfd, buffer, 255);
             if (n < 0)
@@ -74,7 +73,7 @@ void * komunikacia(void * data){
             printf("Here is the message: %s\n", buffer);
 
             const char* msg = "I got your message";
-            n = write(poleKlientov[i].socket, msg, strlen(msg)+1);
+            n = write((*poleKlientov[i]).socket, msg, strlen(msg)+1);
             if (n < 0)
             {
                 perror("Error writing to socket");
@@ -82,9 +81,9 @@ void * komunikacia(void * data){
             }
 
         }
+
     }
-
-
+    printf("%d",nasielSA);*/
 
 }
 
@@ -93,8 +92,6 @@ int main(int argc, char *argv[])
     int sockfd, newsockfd;
     socklen_t cli_len;
     struct sockaddr_in serv_addr, cli_addr;
-    int n;
-    char buffer[256];
 
     if (argc < 2)
     {
@@ -132,7 +129,8 @@ int main(int argc, char *argv[])
 
     DATAC client;
     client.socket = newsockfd;
+
     pthread_t vlakno;
-    pthread_create(&vlakno, NULL, komunikacia, &client);
+    pthread_create(&vlakno, NULL, &komunikacia, &client);
     pthread_join(vlakno, NULL);
 }
