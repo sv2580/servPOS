@@ -43,15 +43,14 @@ void * komunikacia(void * data){
 
 
     char contact[100];
+    bzero(contact,100);
     n = read(newsockfd, contact, 100);
     if (n < 0)
     {
         perror("Error reading from socket");
     }
 
-    printf("Som tu");
-
-    bzero(contact,100);
+    printf("%s\n", contact);
 
     sprintf(buffer,"Here is the contact: %s\n", contact);
     printf("%s", buffer);

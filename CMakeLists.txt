@@ -3,6 +3,6 @@ project(sem C)
 
 set(CMAKE_C_STANDARD 99)
 
-add_executable(sem main.c)
+add_executable(servPOS main.c)
 
-target_link_libraries(sem pthread)
+target_link_libraries(servPOS pthread)
