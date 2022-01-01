@@ -35,13 +35,24 @@ void trim(char *string, int dlzka) {
 }
 
 void *komunikacia(void *data) {
-
     DATAC *datac = data;
+    int n = 0;
+    int newsockfd = datac->socket;
+
+    char login[100];
+    char buffer[256];
+
+    bzero(login, 100);
+    n = read(newsockfd, login, 99);
+    if (n < 0) {
+        perror("Error reading from socket");
+    }
+    trim(login,100);
+    strcpy((datac->login), login);
+    sprintf(buffer, "Here is the login: %s\n", (datac->login));
+    printf("%s", buffer);
     int skonci = 0;
     while (skonci == 0) {
-        int n = 0;
-        char buffer[256];
-        int newsockfd = datac->socket;
 
         poleKlientov[pocet] = *datac;
         (pocet)++;
@@ -129,16 +140,7 @@ int main(int argc, char *argv[]) {
     client.socket = newsockfd;
     char buffer[256];
     bzero(buffer, 256);
-    char login[100];
-    bzero(login, 100);
-    n = read(newsockfd, login, 99);
-    if (n < 0) {
-        perror("Error reading from socket");
-    }
-    trim(login,100);
-    strcpy((client.login), login);
-    sprintf(buffer, "Here is the login: %s\n", (client.login));
-    printf("%s", buffer);
+
 
     pthread_t vlakno;
 
