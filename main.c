@@ -18,6 +18,8 @@ typedef struct dataClient {
     int id;
 } DATAC;
 
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
 DATAC poleKlientov[100];
 int pocet = 0;
 
@@ -52,9 +54,13 @@ void *komunikacia(void *data) {
     sprintf(buffer, "Here is the login: %s\n", (datac->login));
     printf("%s", buffer);
     int skonci = 0;
+
     while (skonci == 0) {
+        pthread_mutex_lock(&mutex);
 
         poleKlientov[pocet] = *datac;
+        pthread_mutex_unlock(&mutex);
+
         (pocet)++;
 
         char contact[100];
