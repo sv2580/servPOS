@@ -23,40 +23,28 @@ int pocet = 0;
 void * komunikacia(void * data){
 
     DATAC * datac = data;
-    int n;
+    int n = 0;
     char buffer[256];
     int newsockfd = datac->socket;
-    char login[100];
-    bzero(login,100);
-    n = read(newsockfd, login, 99);
-    if (n < 0)
-    {
-        perror("Error reading from socket");
-    }
-    strcpy((datac->login),login);
-    sprintf(buffer,"Here is the login: %s\n", (datac->login));
-    printf("%s", buffer);
-
 
     poleKlientov[pocet] = *datac;
     (pocet)++;
 
 
-    char contact[100];
-    n = read(newsockfd, contact, 100);
-    if (n < 0)
-    {
-        perror("Error reading from socket");
+    while(n == 0){
+        char contact[100];
+
+        n = read(newsockfd, contact, 99);
+        if (n < 0)
+        {
+            perror("Error reading from socket");
+        }
+        sprintf(buffer,"Here is the contact: %s\n", contact);
+        printf("%s", buffer);
     }
 
-    printf("Som tu");
 
-    bzero(contact,100);
-
-    sprintf(buffer,"Here is the contact: %s\n", contact);
-    printf("%s", buffer);
-
-/*
+/**
     int nasielSA = 0;
     for (int i = 0; i < (*pocet); ++i) {
 
@@ -89,7 +77,7 @@ void * komunikacia(void * data){
 
 int main(int argc, char *argv[])
 {
-    int sockfd, newsockfd;
+    int sockfd, newsockfd,n;
     socklen_t cli_len;
     struct sockaddr_in serv_addr, cli_addr;
 
@@ -129,6 +117,18 @@ int main(int argc, char *argv[])
 
     DATAC client;
     client.socket = newsockfd;
+    char buffer[256];
+    bzero(buffer,256);
+    char login[100];
+    bzero(login,100);
+    n = read(newsockfd, login, 99);
+    if (n < 0)
+    {
+        perror("Error reading from socket");
+    }
+    strcpy((client.login),login);
+    sprintf(buffer,"Here is the login: %s\n", (client.login));
+    printf("%s", buffer);
 
     pthread_t vlakno;
     pthread_create(&vlakno, NULL, &komunikacia, &client);
