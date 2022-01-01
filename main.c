@@ -23,56 +23,61 @@ int pocet = 0;
 void * komunikacia(void * data){
 
     DATAC * datac = data;
-    int n = 0;
-    char buffer[256];
-    int newsockfd = datac->socket;
+    int skonci = 0;
+    while(skonci == 0){
+        int n = 0;
+        char buffer[256];
+        int newsockfd = datac->socket;
 
-    poleKlientov[pocet] = *datac;
-    (pocet)++;
+        poleKlientov[pocet] = *datac;
+        (pocet)++;
 
-
-    while(n == 0){
         char contact[100];
 
-        n = read(newsockfd, contact, 99);
-        if (n < 0)
-        {
-            perror("Error reading from socket");
-        }
-        sprintf(buffer,"Here is the contact: %s\n", contact);
-        printf("%s", buffer);
-    }
+        while(n == 0){
 
-
-/**
-    int nasielSA = 0;
-    for (int i = 0; i < (*pocet); ++i) {
-
-        if((*poleKlientov[i]).login == contact)
-        {
-            nasielSA = 1;
-            bzero(buffer,256);
-            n = read(newsockfd, buffer, 255);
+            n = read(newsockfd, contact, 99);
             if (n < 0)
             {
                 perror("Error reading from socket");
-                return 4;
             }
-            printf("Here is the message: %s\n", buffer);
-
-            const char* msg = "I got your message";
-            n = write((*poleKlientov[i]).socket, msg, strlen(msg)+1);
-            if (n < 0)
-            {
-                perror("Error writing to socket");
-                return 5;
+            if(strcmp(contact,"exit") != 0){
+                skonci = 1;
+                break   ;
             }
-
+            sprintf(buffer,"Here is the contact: %s\n", contact);
+            printf("%s", buffer);
         }
 
-    }
-    printf("%d",nasielSA);*/
+        n = 0;
+        while(n == 0) {
+            int nasielSA = 0;
+            for (int i = 0; i < (pocet); ++i) {
+                if (strcmp(poleKlientov[i].login, contact) != 0) {
+                    nasielSA = 1;
+                    bzero(buffer, 256);
+                    n = read(newsockfd, buffer, 255);
+                    if (n < 0) {
+                        perror("Error reading from socket");
+                        return NULL;
+                    }
+                    printf("Here is the message: %s\n", buffer);
 
+                    const char *msg = "I got your message";
+                    n = write((poleKlientov[i]).socket, msg, strlen(msg) + 1);
+                    if (n < 0) {
+                        perror("Error writing to socket");
+                        return NULL;
+                    }
+
+                }
+
+            }
+            printf("%d", nasielSA);
+            n = nasielSA;
+        }
+        printf("%d",skonci);
+    }
 }
 
 int main(int argc, char *argv[])
@@ -131,6 +136,8 @@ int main(int argc, char *argv[])
     printf("%s", buffer);
 
     pthread_t vlakno;
+
     pthread_create(&vlakno, NULL, &komunikacia, &client);
     pthread_join(vlakno, NULL);
+
 }
