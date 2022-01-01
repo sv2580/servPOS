@@ -34,23 +34,22 @@ void * komunikacia(void * data){
 
         char contact[100];
 
-        while(n == 0){
+
 
             n = read(newsockfd, contact, 99);
             if (n < 0)
             {
                 perror("Error reading from socket");
             }
-            if(strcmp(contact,"exit") != 0){
+            if(strcmp(contact,"exit") == 0){
                 skonci = 1;
-                break   ;
+                break;
             }
             sprintf(buffer,"Here is the contact: %s\n", contact);
             printf("%s", buffer);
-        }
+
 
         n = 0;
-        while(n == 0) {
             int nasielSA = 0;
             for (int i = 0; i < (pocet); ++i) {
                 if (strcmp(poleKlientov[i].login, contact) != 0) {
@@ -70,7 +69,7 @@ void * komunikacia(void * data){
                         return NULL;
                     }
 
-                }
+
 
             }
             printf("%d", nasielSA);
