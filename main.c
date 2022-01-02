@@ -20,11 +20,10 @@ typedef struct dataClient {
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-DATAC poleKlientov[100];
-int pocet = 0;
+DATAC *poleKlientov[100];
+static int pocet;
 
 void trim(char *string, int dlzka) {
-
     int i;
     for (i = 0; i < dlzka; i++) { // trim \n
         if (string[i] == '\n') {
@@ -34,6 +33,19 @@ void trim(char *string, int dlzka) {
 
     }
 
+}
+
+void pridatKlienta(DATAC *client){
+    pthread_mutex_lock(&mutex);
+
+    for(int i=0; i < 100; ++i){
+        if(!poleKlientov[i]){
+            poleKlientov[i] = client;
+            break;
+        }
+    }
+
+    pthread_mutex_unlock(&mutex);
 }
 
 void *komunikacia(void *data) {
@@ -49,13 +61,13 @@ void *komunikacia(void *data) {
     if (n < 0) {
         perror("Error reading from socket");
     }
-    trim(login,100);
+    trim(login, 100);
     strcpy((datac->login), login);
     sprintf(buffer, "Here is the login: %s\n", (datac->login));
     printf("%s", buffer);
 
-    poleKlientov[pocet] = *datac;
-    pocet++;
+    pridatKlienta(datac);
+
 
     while (1) {
 
@@ -68,7 +80,8 @@ void *komunikacia(void *data) {
             break;
         }
 
-        trim(contact,100);
+
+        trim(contact, 100);
         sprintf(buffer, "Here is the contact: %s\n", contact);
         printf("%s", buffer);
 
@@ -77,8 +90,8 @@ void *komunikacia(void *data) {
 
         int nasielSA = 0;
         for (int i = 0; i < (pocet); ++i) {
-            printf("%d. %s %s\n", i,poleKlientov[i].login, contact);
-            if (strcmp(poleKlientov[i].login, contact) == 0) {
+            printf("%d. %s %s\n", i, (*poleKlientov[i]).login, contact);
+            if (strcmp((*poleKlientov[i]).login, contact) == 0) {
                 nasielSA = 1;
                 bzero(buffer, 256);
                 n = read(newsockfd, buffer, 255);
@@ -88,7 +101,7 @@ void *komunikacia(void *data) {
                 }
                 printf("Here is the message: %s\n", buffer);
 
-                n = write(poleKlientov[i].socket, buffer, strlen(buffer));
+                n = write((*poleKlientov[i]).socket, buffer, strlen(buffer));
                 if (n < 0) {
                     perror("Error writing to socket");
                     return NULL;
@@ -99,7 +112,7 @@ void *komunikacia(void *data) {
         }
         bzero(buffer, 256);
 
-        if(nasielSA == 0){
+        if (nasielSA == 0) {
             bzero(buffer, 256);
             n = read(newsockfd, buffer, 255);
             if (n < 0) {
@@ -110,7 +123,6 @@ void *komunikacia(void *data) {
 
 
         }
-
         bzero(buffer, 256);
     }
 }
@@ -142,25 +154,26 @@ int main(int argc, char *argv[]) {
     }
 
     listen(sockfd, 5);
-    cli_len = sizeof(cli_addr);
+    int pocetKlientov = 0;
 
-    newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &cli_len);
-    if (newsockfd < 0) {
-        perror("ERROR on accept");
-        return 3;
+    while (1) {
+        cli_len = sizeof(cli_addr);
+
+        newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &cli_len);
+        if (newsockfd < 0) {
+            perror("ERROR on accept");
+            return 3;
+        }
+
+        DATAC client;
+        pocetKlientov++;
+        client.socket = newsockfd;
+        char buffer[256];
+        bzero(buffer, 256);
+
+
+        pthread_t vlakno;
+
+        pthread_create(&vlakno, NULL, &komunikacia, &client);
     }
-
-    DATAC client;
-    client.socket = newsockfd;
-    char buffer[256];
-    bzero(buffer, 256);
-
-
-    pthread_t vlakno;
-
-    pthread_create(&vlakno, NULL, &komunikacia, &client);
-    while(1){
-        usleep(1);
-    }
-
 }
