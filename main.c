@@ -40,10 +40,11 @@ void pridatKlienta(DATAC *client){
 
     for(int i=0; i < 100; ++i){
         if(!poleKlientov[i]){
-            poleKlientov[i] = client;
+            (poleKlientov[i]) = client;
             break;
         }
     }
+
 
     pthread_mutex_unlock(&mutex);
 }
@@ -65,12 +66,17 @@ void *komunikacia(void *data) {
     strcpy((datac->login), login);
     sprintf(buffer, "Here is the login: %s\n", (datac->login));
     printf("%s", buffer);
+    pocet++;
+    printf("Počet prihlásených: %d \n",pocet);
 
-    pridatKlienta(datac);
-
+    for(int i=0; i < 100; ++i){
+        if((poleKlientov[i])){
+            printf("Klient: %s",(*poleKlientov[i]).login);
+        }
+    }
 
     while (1) {
-
+        pthread_mutex_lock(&mutex);
         char contact[100];
         n = read(newsockfd, contact, 99);
         if (n < 0) {
@@ -89,7 +95,7 @@ void *komunikacia(void *data) {
         n = 0;
 
         int nasielSA = 0;
-        for (int i = 0; i < (pocet); ++i) {
+        for (int i = 0; i < pocet; ++i) {
             printf("%d. %s %s\n", i, (*poleKlientov[i]).login, contact);
             if (strcmp((*poleKlientov[i]).login, contact) == 0) {
                 nasielSA = 1;
@@ -124,6 +130,8 @@ void *komunikacia(void *data) {
 
         }
         bzero(buffer, 256);
+        pthread_mutex_unlock(&mutex);
+
     }
 }
 
@@ -173,7 +181,7 @@ int main(int argc, char *argv[]) {
 
 
         pthread_t vlakno;
-
+        pridatKlienta(&client);
         pthread_create(&vlakno, NULL, &komunikacia, &client);
     }
 }
