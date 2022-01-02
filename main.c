@@ -16,11 +16,7 @@ typedef struct dataClient {
     char *login;
     int socket;
     int id;
-    struct sockaddr_in client_addr;
-    int client_len;
 } DATAC;
-
-pthread_t vlakna[100];
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -53,19 +49,15 @@ void *komunikacia(void *data) {
     if (n < 0) {
         perror("Error reading from socket");
     }
-    trim(login, 100);
+    trim(login,100);
     strcpy((datac->login), login);
     sprintf(buffer, "Here is the login: %s\n", (datac->login));
     printf("%s", buffer);
-    int skonci = 0;
 
-    while (skonci == 0) {
-        pthread_mutex_lock(&mutex);
+    poleKlientov[pocet] = *datac;
+    pocet++;
 
-        poleKlientov[pocet] = *datac;
-        pthread_mutex_unlock(&mutex);
-
-        (pocet)++;
+    while (1) {
 
         char contact[100];
         n = read(newsockfd, contact, 99);
@@ -73,19 +65,19 @@ void *komunikacia(void *data) {
             perror("Error reading from socket");
         }
         if (strcmp(contact, "exit") == 0) {
-            skonci = 1;
             break;
         }
 
-        trim(contact, 100);
+        trim(contact,100);
         sprintf(buffer, "Here is the contact: %s\n", contact);
         printf("%s", buffer);
 
-
+        bzero(buffer, 256);
         n = 0;
+
         int nasielSA = 0;
         for (int i = 0; i < (pocet); ++i) {
-            printf("%d. %s %s\n", i, poleKlientov[i].login, contact);
+            printf("%d. %s %s\n", i,poleKlientov[i].login, contact);
             if (strcmp(poleKlientov[i].login, contact) == 0) {
                 nasielSA = 1;
                 bzero(buffer, 256);
@@ -104,10 +96,22 @@ void *komunikacia(void *data) {
 
             }
 
+        }
+        bzero(buffer, 256);
+
+        if(nasielSA == 0){
+            bzero(buffer, 256);
+            n = read(newsockfd, buffer, 255);
+            if (n < 0) {
+                perror("Error reading from socket");
+                return NULL;
+            }
+            printf("Message: %s\n", buffer);
+
 
         }
-        printf("%d \n", nasielSA);
 
+        bzero(buffer, 256);
     }
 }
 
@@ -143,28 +147,18 @@ int main(int argc, char *argv[]) {
     newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &cli_len);
     if (newsockfd < 0) {
         perror("ERROR on accept");
-      return 3;
+        return 3;
     }
 
+    DATAC client;
+    client.socket = newsockfd;
     char buffer[256];
     bzero(buffer, 256);
 
 
-    while (1) {
+    pthread_t vlakno;
 
-        poleKlientov[pocet].socket = accept(sockfd, (struct sockaddr *) &poleKlientov[pocet].client_addr,
-                                            &poleKlientov[pocet].client_len);
-        poleKlientov[pocet].id = pocet;
-
-        pthread_create(&vlakna[pocet], NULL, komunikacia, (void *) &poleKlientov[pocet]);
-
-        pocet++;
-
-    }
-
-    for (int i = 0; i < pocet; i++)
-        pthread_join(vlakna[i], NULL);
-
-
+    pthread_create(&vlakno, NULL, &komunikacia, &client);
+    pthread_join(vlakno, NULL);
 
 }
