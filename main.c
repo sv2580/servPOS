@@ -140,14 +140,14 @@ int main(int argc, char *argv[]) {
     listen(sockfd, 5);
     cli_len = sizeof(cli_addr);
 
-//    newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &cli_len);
-//    if (newsockfd < 0) {
-//        perror("ERROR on accept");
-//        return 3;
-//    }
+    newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &cli_len);
+    if (newsockfd < 0) {
+        perror("ERROR on accept");
+      return 3;
+    }
 
-//    char buffer[256];
-//    bzero(buffer, 256);
+    char buffer[256];
+    bzero(buffer, 256);
 
 
     while (1) {
@@ -162,9 +162,9 @@ int main(int argc, char *argv[]) {
 
     }
 
-    for (int i = 0; i < pocet; i++) {
+    for (int i = 0; i < pocet; i++)
         pthread_join(vlakna[i], NULL);
 
-    }
+
 
 }
