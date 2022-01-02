@@ -159,6 +159,8 @@ int main(int argc, char *argv[]) {
     pthread_t vlakno;
 
     pthread_create(&vlakno, NULL, &komunikacia, &client);
-    pthread_join(vlakno, NULL);
+    while(1){
+        usleep(1);
+    }
 
 }
