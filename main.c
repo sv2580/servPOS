@@ -20,7 +20,7 @@ typedef struct dataClient {
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-DATAC *poleKlientov[100];
+DATAC *poleKlientov[100] = {NULL};
 static int pocet;
 
 void trim(char *string, int dlzka) {
@@ -41,11 +41,10 @@ void pridatKlienta(DATAC *client){
     for(int i=0; i < 100; ++i){
         if(!poleKlientov[i]){
             (poleKlientov[i]) = client;
+            printf("%d %s",i,client->login);
             break;
         }
     }
-
-
     pthread_mutex_unlock(&mutex);
 }
 
@@ -67,16 +66,11 @@ void *komunikacia(void *data) {
     sprintf(buffer, "Here is the login: %s\n", (datac->login));
     printf("%s", buffer);
     pocet++;
+    pridatKlienta(datac);
     printf("Počet prihlásených: %d \n",pocet);
 
-    for(int i=0; i < 100; ++i){
-        if((poleKlientov[i])){
-            printf("Klient: %s",(*poleKlientov[i]).login);
-        }
-    }
-
     while (1) {
-        pthread_mutex_lock(&mutex);
+
         char contact[100];
         n = read(newsockfd, contact, 99);
         if (n < 0) {
@@ -86,7 +80,6 @@ void *komunikacia(void *data) {
             break;
         }
 
-
         trim(contact, 100);
         sprintf(buffer, "Here is the contact: %s\n", contact);
         printf("%s", buffer);
@@ -94,10 +87,16 @@ void *komunikacia(void *data) {
         bzero(buffer, 256);
         n = 0;
 
+
+        for (int i = 0; i < pocet; ++i) {
+            printf("%d. %s \n", i, (*poleKlientov[i]).login);
+        }
+
+
         int nasielSA = 0;
         for (int i = 0; i < pocet; ++i) {
-            printf("%d. %s %s\n", i, (*poleKlientov[i]).login, contact);
-            if (strcmp((*poleKlientov[i]).login, contact) == 0) {
+            printf("%d. %s %s\n", i, poleKlientov[i]->login, contact);
+            if (strcmp(poleKlientov[i]->login, contact) == 0) {
                 nasielSA = 1;
                 bzero(buffer, 256);
                 n = read(newsockfd, buffer, 255);
@@ -107,7 +106,7 @@ void *komunikacia(void *data) {
                 }
                 printf("Here is the message: %s\n", buffer);
 
-                n = write((*poleKlientov[i]).socket, buffer, strlen(buffer));
+                n = write(poleKlientov[i]->socket, buffer, strlen(buffer));
                 if (n < 0) {
                     perror("Error writing to socket");
                     return NULL;
@@ -130,7 +129,6 @@ void *komunikacia(void *data) {
 
         }
         bzero(buffer, 256);
-        pthread_mutex_unlock(&mutex);
 
     }
 }
@@ -176,12 +174,8 @@ int main(int argc, char *argv[]) {
         DATAC client;
         pocetKlientov++;
         client.socket = newsockfd;
-        char buffer[256];
-        bzero(buffer, 256);
-
-
         pthread_t vlakno;
-        pridatKlienta(&client);
+
         pthread_create(&vlakno, NULL, &komunikacia, &client);
     }
 }
