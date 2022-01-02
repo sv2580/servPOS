@@ -13,7 +13,7 @@
 #include <string.h>
 
 typedef struct dataClient {
-    char *login;
+    char login[100];
     int socket;
     int id;
 } DATAC;
@@ -35,105 +35,116 @@ void trim(char *string, int dlzka) {
 
 }
 
-void pridatKlienta(DATAC *client){
+void pridatKlienta(DATAC *client) {
     pthread_mutex_lock(&mutex);
 
-    for(int i=0; i < 100; ++i){
-        if(!poleKlientov[i]){
+    for (int i = 0; i < 100; ++i) {
+        if (!poleKlientov[i]) {
             (poleKlientov[i]) = client;
-            printf("%d %s",i,client->login);
             break;
         }
+    }
+
+    for (int i = 0; i < pocet; ++i) {
+        printf("%s \n",poleKlientov[i]->login);
     }
     pthread_mutex_unlock(&mutex);
 }
 
 void *komunikacia(void *data) {
-    DATAC *datac = data;
+    printf("SOM TU 6 \n");
+
+    DATAC *datac = (DATAC *) data;
     int n = 0;
-    int newsockfd = datac->socket;
+
+    int newsockfd = (*datac).socket;
 
     char login[100];
     char buffer[256];
-
     bzero(login, 100);
+
     n = read(newsockfd, login, 99);
     if (n < 0) {
         perror("Error reading from socket");
     }
     trim(login, 100);
+
     strcpy((datac->login), login);
+
     sprintf(buffer, "Here is the login: %s\n", (datac->login));
     printf("%s", buffer);
     pocet++;
+
     pridatKlienta(datac);
-    printf("Počet prihlásených: %d \n",pocet);
 
-    while (1) {
+    printf("Počet prihlásených: %d \n", pocet);
 
-        char contact[100];
-        n = read(newsockfd, contact, 99);
-        if (n < 0) {
-            perror("Error reading from socket");
-        }
-        if (strcmp(contact, "exit") == 0) {
-            break;
-        }
+      while (1) {
 
-        trim(contact, 100);
-        sprintf(buffer, "Here is the contact: %s\n", contact);
-        printf("%s", buffer);
+          char contact[100];
+          n = read(newsockfd, contact, 99);
+          if (n < 0) {
+              perror("Error reading from socket");
+          }
+          if (strcmp(contact, "exit") == 0) {
+              break;
+          }
 
-        bzero(buffer, 256);
-        n = 0;
+          trim(contact, 100);
+          sprintf(buffer, "Here is the contact: %s\n", contact);
+          printf("%s", buffer);
 
-
-        for (int i = 0; i < pocet; ++i) {
-            printf("%d. %s \n", i, (*poleKlientov[i]).login);
-        }
+          bzero(buffer, 256);
+          n = 0;
 
 
-        int nasielSA = 0;
-        for (int i = 0; i < pocet; ++i) {
-            printf("%d. %s %s\n", i, poleKlientov[i]->login, contact);
-            if (strcmp(poleKlientov[i]->login, contact) == 0) {
-                nasielSA = 1;
-                bzero(buffer, 256);
-                n = read(newsockfd, buffer, 255);
-                if (n < 0) {
-                    perror("Error reading from socket");
-                    return NULL;
-                }
-                printf("Here is the message: %s\n", buffer);
-
-                n = write(poleKlientov[i]->socket, buffer, strlen(buffer));
-                if (n < 0) {
-                    perror("Error writing to socket");
-                    return NULL;
-                }
-
-            }
-
-        }
-        bzero(buffer, 256);
-
-        if (nasielSA == 0) {
-            bzero(buffer, 256);
-            n = read(newsockfd, buffer, 255);
-            if (n < 0) {
-                perror("Error reading from socket");
-                return NULL;
-            }
-            printf("Message: %s\n", buffer);
+          for (int i = 0; i < pocet; ++i) {
+              printf("%d. %s \n", i, (*poleKlientov[i]).login);
+          }
 
 
-        }
-        bzero(buffer, 256);
+          int nasielSA = 0;
+          for (int i = 0; i < pocet; ++i) {
+              printf("%d. %s %s\n", i, poleKlientov[i]->login, contact);
+              if (strcmp(poleKlientov[i]->login, contact) == 0) {
+                  nasielSA = 1;
+                  bzero(buffer, 256);
+                  n = read(newsockfd, buffer, 255);
+                  if (n < 0) {
+                      perror("Error reading from socket");
+                      return NULL;
+                  }
+                  printf("Here is the message: %s\n", buffer);
 
-    }
+                  n = write(poleKlientov[i]->socket, buffer, strlen(buffer));
+                  if (n < 0) {
+                      perror("Error writing to socket");
+                      return NULL;
+                  }
+
+              }
+
+          }
+          bzero(buffer, 256);
+
+          if (nasielSA == 0) {
+              bzero(buffer, 256);
+              n = read(newsockfd, buffer, 255);
+              if (n < 0) {
+                  perror("Error reading from socket");
+                  return NULL;
+              }
+              printf("Message: %s\n", buffer);
+
+
+          }
+          bzero(buffer, 256);
+
+      }
 }
 
 int main(int argc, char *argv[]) {
+
     int sockfd, newsockfd, n;
     socklen_t cli_len;
     struct sockaddr_in serv_addr, cli_addr;
@@ -171,11 +182,10 @@ int main(int argc, char *argv[]) {
             return 3;
         }
 
-        DATAC client;
-        pocetKlientov++;
-        client.socket = newsockfd;
+        DATAC *client = (DATAC *) malloc(sizeof(DATAC));
+        client->socket = newsockfd;
         pthread_t vlakno;
 
-        pthread_create(&vlakno, NULL, &komunikacia, &client);
+        pthread_create(&vlakno, NULL, &komunikacia, (void *) client);
     }
 }
