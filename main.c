@@ -46,7 +46,7 @@ void pridatKlienta(DATAC *client) {
     }
 
     for (int i = 0; i < pocet; ++i) {
-        printf("%s \n",poleKlientov[i]->login);
+        printf("%s \n", poleKlientov[i]->login);
     }
     pthread_mutex_unlock(&mutex);
 }
@@ -79,101 +79,143 @@ void *komunikacia(void *data) {
 
     printf("Počet prihlásených: %d \n", pocet);
 
-      while (1) {
+    while (1) {
 
-          char contact[100];
-          n = read(newsockfd, contact, 99);
-          if (n < 0) {
-              perror("Error reading from socket");
-          }
-          if (strcmp(contact, "exit") == 0) {
-              break;
-          }
+        char contact[100];
+        n = read(newsockfd, contact, 99);
+        if (n < 0) {
+            perror("Error reading from socket");
+        }
+        if (strcmp(contact, "exit") == 0) {
+            break;
+        }
 
-          trim(contact, 100);
-          sprintf(buffer, "Here is the contact: %s\n", contact);
-          printf("%s", buffer);
+        trim(contact, 100);
+        sprintf(buffer, "Here is the contact: %s\n", contact);
+        printf("%s", buffer);
 
-          bzero(buffer, 256);
-          n = 0;
-
-
-          for (int i = 0; i < pocet; ++i) {
-              printf("%d. %s \n", i, (*poleKlientov[i]).login);
-          }
+        bzero(buffer, 256);
+        n = 0;
 
 
-          int nasielSA = 0;
-          for (int i = 0; i < pocet; ++i) {
-              printf("%d. %s %s\n", i, poleKlientov[i]->login, contact);
-              if (strcmp(poleKlientov[i]->login, contact) == 0) {
-                  nasielSA = 1;
-                  bzero(buffer, 256);
-                  n = read(newsockfd, buffer, 255);
-                  if (n < 0) {
-                      perror("Error reading from socket");
-                      return NULL;
-                  }
-                  printf("Here is the message: %s\n", buffer);
-
-                  n = write(poleKlientov[i]->socket, buffer, strlen(buffer));
-                  if (n < 0) {
-                      perror("Error writing to socket");
-                      return NULL;
-                  }
-
-              }
-
-          }
-          bzero(buffer, 256);
-
-          if (nasielSA == 0) {
-              bzero(buffer, 256);
-              n = read(newsockfd, buffer, 255);
-              if (n < 0) {
-                  perror("Error reading from socket");
-                  return NULL;
-              }
-              printf("Message: %s\n", buffer);
+        for (int i = 0; i < pocet; ++i) {
+            printf("%d. %s \n", i, (*poleKlientov[i]).login);
+        }
 
 
-          }
-          bzero(buffer, 256);
-      }
+        int nasielSA = 0;
+        for (int i = 0; i < pocet; ++i) {
+            printf("%d. %s %s\n", i, poleKlientov[i]->login, contact);
+            if (strcmp(poleKlientov[i]->login, contact) == 0) {
+                nasielSA = 1;
+                bzero(buffer, 256);
+                n = read(newsockfd, buffer, 255);
+                if (n < 0) {
+                    perror("Error reading from socket");
+                    return NULL;
+                }
+                printf("Here is the message: %s\n", buffer);
+
+                n = write(poleKlientov[i]->socket, buffer, strlen(buffer));
+                if (n < 0) {
+                    perror("Error writing to socket");
+                    return NULL;
+                }
+
+            }
+
+        }
+        bzero(buffer, 256);
+
+        if (nasielSA == 0) {
+            bzero(buffer, 256);
+            n = read(newsockfd, buffer, 255);
+            if (n < 0) {
+                perror("Error reading from socket");
+                return NULL;
+            }
+            printf("Message: %s\n", buffer);
+
+
+        }
+        bzero(buffer, 256);
+    }
 }
-void registracia(DATAC* data){
+void hlavneMenu(DATAC *data);
+void registracia(DATAC *data) {
     int n;
     char login[100];
     char buffer[256];
+    char password[100];
 
-    bzero(login, 100);
+    while (1) {
+        bzero(login, 100);
+        bzero(buffer, 256);
+        n = read(data->socket, login, 99);
+        if (n < 0) {
+            perror("Error reading from socket");
+        }
+        trim(login, 100);
+        strcpy((data->login), login);
+        sprintf(buffer, "Here is the login: %s\n", (data->login));
+        FILE *subor;
 
-    n = read(data->socket, login, 99);
-    if (n < 0) {
-        perror("Error reading from socket");
+        subor = fopen("loginy.txt", "r");
+        if (subor == NULL) {
+            fputs("Error at opening File!", stderr);
+            exit(1);
+        }
+        printf("Súbor otvorený \n");
+        char line[256];
+        int nasloSa = 0;
+        int pocetRiadkov = 0;
+        while (fscanf(subor, "%s", line) != EOF) {
+            pocetRiadkov++;
+            if (pocetRiadkov % 2 == 1) {
+                printf("%s \n", line);
+                if (strcmp(line, login) == 0) {
+                    printf("Username is already used.\n");
+                    const char *msg = "Username is already used.";
+                    nasloSa = 1;
+
+                }
+            }
+        }
+        fclose(subor);
+        n = write(data->socket, &nasloSa, sizeof(nasloSa));
+        if (n < 0) {
+            perror("Error writing to socket");
+            return;
+        }
+        if (nasloSa == 0) {
+            bzero(password, 100);
+            n = read(data->socket, password, 99);
+            if (n < 0) {
+                perror("Error reading from socket");
+            }
+            trim(password, 100);
+            printf("Zadané heslo %s \n",password);
+            FILE *subor;
+
+            subor = fopen("loginy.txt", "a");
+            if (subor == NULL) {
+                fputs("Error at opening File!", stderr);
+                exit(1);
+            }
+            fprintf(subor, "%s\n", login);
+            fprintf(subor, "%s\n", password);
+
+            fclose(subor);
+            break;
+        }
+
     }
-    trim(login, 100);
-    strcpy((data->login), login);
-    sprintf(buffer, "Here is the login: %s\n", (data->login));
-    FILE *subor;
 
-    subor = fopen("/ŠKOLA/VSETKYphp/semestrálkaCHat/server/loginy.txt","r");
-    if (subor == NULL)
-    {
-        fputs("Error at opening File!", stderr);
-        exit(1);
-    }
-
-    while(fread(&login,sizeof(login),1,subor))
-    {
-        printf("\nLogin is already used! Please try again.\n");
-    }
-
-    fclose(subor);
-
+    printf("Login zapísaný \n");
+    hlavneMenu(data);
 }
 
-void hlavneMenu(DATAC * data){
+void hlavneMenu(DATAC *data) {
     int n;
     int poziadavka;
     n = read(data->socket, &poziadavka, sizeof(poziadavka));
@@ -181,8 +223,8 @@ void hlavneMenu(DATAC * data){
         perror("Error reading from socket");
         return;
     }
-    printf("%d \n",poziadavka);
-    if(poziadavka == 1){
+    printf("%d \n", poziadavka);
+    if (poziadavka == 1) {
         registracia(data);
     }
 }
