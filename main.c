@@ -59,23 +59,7 @@ void *komunikacia(void *data) {
 
     int newsockfd = (*datac).socket;
 
-    char login[100];
     char buffer[256];
-    bzero(login, 100);
-
-    n = read(newsockfd, login, 99);
-    if (n < 0) {
-        perror("Error reading from socket");
-    }
-    trim(login, 100);
-
-    strcpy((datac->login), login);
-
-    sprintf(buffer, "Here is the login: %s\n", (datac->login));
-    printf("%s", buffer);
-    pocet++;
-
-    pridatKlienta(datac);
 
     printf("Počet prihlásených: %d \n", pocet);
 
@@ -318,6 +302,8 @@ void registration(DATAC *data) {
     }
 
     printf("Login zapísaný \n");
+    pocet++;
+    pridatKlienta(data);
     hlavneMenu(data);
 }
 
@@ -335,6 +321,10 @@ void hlavneMenu(DATAC *data) {
     }
     else if(poziadavka == 2){
         prihlasenie(data);
+    }
+    else if(poziadavka == 3){
+        pthread_t vlakno;
+        pthread_create(&vlakno, NULL, &komunikacia, (void *) data);
     }
 }
 
@@ -379,9 +369,9 @@ int main(int argc, char *argv[]) {
 
         DATAC *client = (DATAC *) malloc(sizeof(DATAC));
         client->socket = newsockfd;
-        pthread_t vlakno;
+
 
         hlavneMenu(client);
-        //pthread_create(&vlakno, NULL, &komunikacia, (void *) client);
+
     }
 }
