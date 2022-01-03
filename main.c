@@ -35,6 +35,21 @@ void trim(char *string, int dlzka) {
 
 }
 
+
+void odoberKlienta(DATAC *client) {
+    pthread_mutex_lock(&mutex);
+
+    for (int i = 0; i < 100; ++i) {
+        if (poleKlientov[i] && (poleKlientov[i]) == client) {
+            poleKlientov[i] = NULL;
+            break;
+        }
+    }
+
+    pthread_mutex_unlock(&mutex);
+}
+
+
 void pridatKlienta(DATAC *client) {
     pthread_mutex_lock(&mutex);
 
@@ -125,15 +140,16 @@ void *komunikacia(void *data) {
         bzero(buffer, 256);
     }
 }
-void hlavneMenu(DATAC *data);
 
-void prihlasenie(DATAC *data) {
+void hlavneMenu(DATAC *datas);
+
+void *prihlasenie(void *datas) {
     int n;
     char login[100];
     char buffer[256];
     char password[100];
 
-
+    DATAC *data = (DATAC *) datas;
     while (1) {
         bzero(login, 100);
         bzero(buffer, 256);
@@ -210,34 +226,35 @@ void prihlasenie(DATAC *data) {
                 n = write(data->socket, &spravneHeslo, sizeof(spravneHeslo));
                 if (n < 0) {
                     perror("Error writing to socket");
-                    return;
+                    return NULL;
                 }
                 break;
             }
 
 
-        }
-        else{
+        } else {
             int spravneHeslo = 0;
             n = write(data->socket, &spravneHeslo, sizeof(spravneHeslo));
             if (n < 0) {
                 perror("Error writing to socket");
-                return;
+                return NULL;
             }
 
         }
     }
-    hlavneMenu(data);
+    pocet++;
+    pridatKlienta(data);
 
+    hlavneMenu(data);
 
 }
 
-void registration(DATAC *data) {
+void *registration(void *datas) {
     int n;
     char login[100];
     char buffer[256];
     char password[100];
-
+    DATAC *data = (DATAC *) datas;
     while (1) {
         bzero(login, 100);
         bzero(buffer, 256);
@@ -260,8 +277,8 @@ void registration(DATAC *data) {
         int nasloSa = 0;
         int pocetRiadkov = 0;
         while (fscanf(subor, "%s", line) != EOF) {
-            pocetRiadkov++;
-            if (pocetRiadkov % 2 == 1) {
+
+            if (pocetRiadkov % 2 == 0) {
                 printf("%s \n", line);
                 if (strcmp(line, login) == 0) {
                     printf("Username is already used.\n");
@@ -270,12 +287,13 @@ void registration(DATAC *data) {
 
                 }
             }
+            pocetRiadkov++;
         }
         fclose(subor);
         n = write(data->socket, &nasloSa, sizeof(nasloSa));
         if (n < 0) {
             perror("Error writing to socket");
-            return;
+            return NULL;
         }
         if (nasloSa == 0) {
             bzero(password, 100);
@@ -284,7 +302,7 @@ void registration(DATAC *data) {
                 perror("Error reading from socket");
             }
             trim(password, 100);
-            printf("Zadané heslo %s \n",password);
+            printf("Zadané heslo %s \n", password);
             FILE *subor;
 
             subor = fopen("loginy.txt", "a");
@@ -300,11 +318,86 @@ void registration(DATAC *data) {
         }
 
     }
-
     printf("Login zapísaný \n");
-    pocet++;
-    pridatKlienta(data);
     hlavneMenu(data);
+}
+
+void *odhlasenie(void *datas) {
+    DATAC *data = (DATAC *) datas;
+    pocet--;
+    odoberKlienta(data);
+    printf("Odhlásenie %s \n", data->login);
+    hlavneMenu(data);
+}
+
+void *zrusitUcet(void *datas) {
+    DATAC *data = (DATAC *) datas;
+    int n;
+    char buffer[256];
+    char password[100];
+
+    while (1) {
+        bzero(password, 100);
+        n = read(data->socket, password, 99);
+        if (n < 0) {
+            perror("Error reading from socket");
+        }
+        trim(password, 100);
+        printf("Zadané heslo %s \n", password);
+        bzero(buffer, 256);
+        FILE * subor;
+        subor = fopen("loginy.txt", "r");
+        if (subor == NULL) {
+            fputs("Error at opening File!", stderr);
+            exit(1);
+        }
+        printf("Súbor otvorený \n");
+
+        char line[256];
+        int pocetRiadkov = 0;
+        int spravneHeslo = 0;
+        int index = 0;
+        while (fscanf(subor, "%s", line) != EOF) {
+            if (pocetRiadkov % 2 == 1) {
+                printf("%s \n", line);
+                if (strcmp(line, password) == 0) {
+                    printf("Správne heslo.\n");
+                    spravneHeslo = 1;
+                    index = pocetRiadkov;
+                }
+            }
+            pocetRiadkov++;
+        }
+        fclose(subor);
+        if (spravneHeslo == 1) {
+            subor = fopen("loginy.txt", "r");
+            if (subor == NULL) {
+                fputs("Error at opening File!", stderr);
+                exit(1);
+            }
+            pocetRiadkov = 0;
+            while (fscanf(subor, "%s", line) != EOF) {
+                if (pocetRiadkov == index -1 && pocetRiadkov == index) {
+                    strcpy(line,NULL);
+                }
+                pocetRiadkov++;
+            }
+            fclose(subor);
+
+            n = write(data->socket, &spravneHeslo, sizeof(spravneHeslo));
+            if (n < 0) {
+                perror("Error writing to socket");
+                return NULL;
+            }
+            break;
+        }
+        printf("Zlé heslo\n");
+    }
+
+    pocet--;
+    odoberKlienta(data);
+    hlavneMenu(data);
+
 }
 
 void hlavneMenu(DATAC *data) {
@@ -317,14 +410,20 @@ void hlavneMenu(DATAC *data) {
     }
     printf("%d \n", poziadavka);
     if (poziadavka == 1) {
-        registration(data);
-    }
-    else if(poziadavka == 2){
-        prihlasenie(data);
-    }
-    else if(poziadavka == 3){
+        pthread_t vlakno_registracia;
+        pthread_create(&vlakno_registracia, NULL, &registration, (void *) data);
+    } else if (poziadavka == 2) {
+        pthread_t vlakno_prihlasenie;
+        pthread_create(&vlakno_prihlasenie, NULL, &prihlasenie, (void *) data);
+    } else if (poziadavka == 3) {
         pthread_t vlakno;
         pthread_create(&vlakno, NULL, &komunikacia, (void *) data);
+    } else if (poziadavka == 4) {
+        pthread_t vlakno_odhlasenie;
+        pthread_create(&vlakno_odhlasenie, NULL, &odhlasenie, (void *) data);
+    } else if (poziadavka == 4) {
+        pthread_t vlakno_zrusenie;
+        pthread_create(&vlakno_zrusenie, NULL, &zrusitUcet, (void *) data);
     }
 }
 
