@@ -142,7 +142,113 @@ void *komunikacia(void *data) {
     }
 }
 void hlavneMenu(DATAC *data);
-void registracia(DATAC *data) {
+
+void prihlasenie(DATAC *data) {
+    int n;
+    char login[100];
+    char buffer[256];
+    char password[100];
+
+
+    while (1) {
+        bzero(login, 100);
+        bzero(buffer, 256);
+
+
+        n = read(data->socket, login, 99);
+        if (n < 0) {
+            perror("Error reading from socket");
+        }
+        trim(login, 100);
+        strcpy((data->login), login);
+        sprintf(buffer, "Here is the login: %s\n", (data->login));
+
+        bzero(password, 100);
+        n = read(data->socket, password, 99);
+        if (n < 0) {
+            perror("Error reading from socket");
+        }
+        trim(password, 100);
+
+        FILE *subor;
+
+        subor = fopen("loginy.txt", "r");
+        if (subor == NULL) {
+            fputs("Error at opening File!", stderr);
+            exit(1);
+        }
+        printf("Súbor otvorený \n");
+
+        int index = 0;
+        char line[256];
+        int nasloSa = 0;
+        int pocetRiadkov = 0;
+        while (fscanf(subor, "%s", line) != EOF) {
+            pocetRiadkov++;
+            if (pocetRiadkov % 2 == 1) {
+                printf("%s \n", line);
+                if (strcmp(line, login) == 0) {
+                    printf("Username is already used.\n");
+                    const char *msg = "Username is already used.";
+                    nasloSa = 1;
+                    index = pocetRiadkov + 1;
+
+
+                }
+            }
+        }
+
+        fclose(subor);
+        if (nasloSa == 1) {
+
+            subor = fopen("loginy.txt", "r");
+            if (subor == NULL) {
+                fputs("Error at opening File!", stderr);
+                exit(1);
+            }
+            printf("Súbor otvorený po 2hykrat\n");
+
+
+            nasloSa = 0;
+            pocetRiadkov = 0;
+            int spravneHeslo = 0;
+            while (fscanf(subor, "%s", line) != EOF) {
+                pocetRiadkov++;
+                if (pocetRiadkov == index) {
+                    if (strcmp(password, line) == 0) {
+                        printf("Uspesne prihlasenie\n");
+                        spravneHeslo = 1;
+                        break;
+                    }
+                }
+            }
+            if (spravneHeslo == 1) {
+                n = write(data->socket, &spravneHeslo, sizeof(spravneHeslo));
+                if (n < 0) {
+                    perror("Error writing to socket");
+                    return;
+                }
+                break;
+            }
+
+
+        }
+        else{
+            int spravneHeslo = 0;
+            n = write(data->socket, &spravneHeslo, sizeof(spravneHeslo));
+            if (n < 0) {
+                perror("Error writing to socket");
+                return;
+            }
+
+        }
+    }
+    hlavneMenu(data);
+
+
+}
+
+void registration(DATAC *data) {
     int n;
     char login[100];
     char buffer[256];
@@ -156,8 +262,6 @@ void registracia(DATAC *data) {
             perror("Error reading from socket");
         }
         trim(login, 100);
-        strcpy((data->login), login);
-        sprintf(buffer, "Here is the login: %s\n", (data->login));
         FILE *subor;
 
         subor = fopen("loginy.txt", "r");
@@ -166,6 +270,8 @@ void registracia(DATAC *data) {
             exit(1);
         }
         printf("Súbor otvorený \n");
+
+
         char line[256];
         int nasloSa = 0;
         int pocetRiadkov = 0;
@@ -225,7 +331,10 @@ void hlavneMenu(DATAC *data) {
     }
     printf("%d \n", poziadavka);
     if (poziadavka == 1) {
-        registracia(data);
+        registration(data);
+    }
+    else if(poziadavka == 2){
+        prihlasenie(data);
     }
 }
 
