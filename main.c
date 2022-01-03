@@ -139,8 +139,52 @@ void *komunikacia(void *data) {
 
           }
           bzero(buffer, 256);
-
       }
+}
+void registracia(DATAC* data){
+    int n;
+    char login[100];
+    char buffer[256];
+
+    bzero(login, 100);
+
+    n = read(data->socket, login, 99);
+    if (n < 0) {
+        perror("Error reading from socket");
+    }
+    trim(login, 100);
+    strcpy((data->login), login);
+    sprintf(buffer, "Here is the login: %s\n", (data->login));
+    FILE *subor;
+
+    subor = fopen("/ŠKOLA/VSETKYphp/semestrálkaCHat/server/loginy.txt","r");
+    if (subor == NULL)
+    {
+        fputs("Error at opening File!", stderr);
+        exit(1);
+    }
+
+    while(fread(&login,sizeof(login),1,subor))
+    {
+        printf("\nLogin is already used! Please try again.\n");
+    }
+
+    fclose(subor);
+
+}
+
+void hlavneMenu(DATAC * data){
+    int n;
+    int poziadavka;
+    n = read(data->socket, &poziadavka, sizeof(poziadavka));
+    if (n < 0) {
+        perror("Error reading from socket");
+        return;
+    }
+    printf("%d \n",poziadavka);
+    if(poziadavka == 1){
+        registracia(data);
+    }
 }
 
 int main(int argc, char *argv[]) {
@@ -186,6 +230,7 @@ int main(int argc, char *argv[]) {
         client->socket = newsockfd;
         pthread_t vlakno;
 
-        pthread_create(&vlakno, NULL, &komunikacia, (void *) client);
+        hlavneMenu(client);
+        //pthread_create(&vlakno, NULL, &komunikacia, (void *) client);
     }
 }
