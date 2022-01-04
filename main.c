@@ -12,6 +12,7 @@
 #include "pthread.h"
 #include <string.h>
 
+
 typedef struct dataClient {
     char login[100];
     int socket;
@@ -345,13 +346,18 @@ void *zrusitUcet(void *datas) {
         trim(password, 100);
         printf("Zadané heslo %s \n", password);
         bzero(buffer, 256);
-        FILE * subor;
+        FILE *subor, *novysubor;
         subor = fopen("loginy.txt", "r");
+
         if (subor == NULL) {
             fputs("Error at opening File!", stderr);
             exit(1);
         }
-        printf("Súbor otvorený \n");
+
+
+
+        printf("Súbory otvorene \n");
+
 
         char line[256];
         int pocetRiadkov = 0;
@@ -369,20 +375,41 @@ void *zrusitUcet(void *datas) {
             pocetRiadkov++;
         }
         fclose(subor);
+
         if (spravneHeslo == 1) {
+
             subor = fopen("loginy.txt", "r");
             if (subor == NULL) {
                 fputs("Error at opening File!", stderr);
                 exit(1);
             }
+
+            novysubor = fopen("nahradny.txt", "w");
+            if (novysubor == NULL) {
+                fputs("Error at opening File!", stderr);
+                exit(1);
+            }
+
             pocetRiadkov = 0;
-            while (fscanf(subor, "%s", line) != EOF) {
-                if (pocetRiadkov == index -1 && pocetRiadkov == index) {
-                    strcpy(line,NULL);
+            char string[256];
+
+            while(!feof(subor)){
+                strcpy(string, "\0");
+                fgets(string, 256, subor);
+                if (!feof(subor))
+                {
+                    pocetRiadkov++;
+                    if (pocetRiadkov != index)
+                    {
+                        fprintf(novysubor, "%s", string);
+                    }
                 }
-                pocetRiadkov++;
             }
             fclose(subor);
+            fclose(novysubor);
+            remove("loginy.txt");
+            rename("nahradny.txt", "loginy.txt");
+
 
             n = write(data->socket, &spravneHeslo, sizeof(spravneHeslo));
             if (n < 0) {
