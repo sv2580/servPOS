@@ -37,8 +37,7 @@ void trim(char *string, int dlzka) {
 
 void vlozitDoSuboru(char *riadok, char *nazovSuboru) {
     char slovo[100];
-    sprintf(slovo, "%s\n", riadok);
-    printf("%s\n", slovo);
+    sprintf(slovo, "%s", riadok);
     FILE *subor;
     subor = fopen(nazovSuboru, "a");
     if (subor == NULL) {
@@ -48,6 +47,87 @@ void vlozitDoSuboru(char *riadok, char *nazovSuboru) {
     fprintf(subor, "%s\n", slovo);
 
     fclose(subor);
+}
+
+void odstranitZoSuboru(int riadok, char *nazovSuboru) {
+    FILE *subor;
+    FILE *novysubor;
+    subor = fopen(nazovSuboru, "r");
+    if (subor == NULL) {
+        fputs("Error at opening File!", stderr);
+        exit(1);
+    }
+    novysubor = fopen("nahradny.txt", "w");
+    if (novysubor == NULL) {
+        fputs("Error at opening File!", stderr);
+        exit(1);
+    }
+
+    int pocetRiadkov = 0;
+    char string[256];
+    while (!feof(subor)) {
+        strcpy(string, "\0");
+        fgets(string, 256, subor);
+        if (!feof(subor)) {
+            pocetRiadkov++;
+            if (pocetRiadkov != riadok) {
+                fprintf(novysubor, "%s", string);
+            }
+        }
+    }
+    fclose(subor);
+    fclose(novysubor);
+    remove(nazovSuboru);
+    rename("nahradny.txt", nazovSuboru);
+}
+
+int indexSlovaVSubore(char *slovo, char *nazovSuboru) {
+    FILE *subor;
+
+    subor = fopen(nazovSuboru, "r");
+    if (subor == NULL) {
+        fputs("Error at opening File!", stderr);
+        exit(1);
+    }
+    int index = -1;
+    char line[256];
+    int nasloSa = 0;
+    int pocetRiadkov = 0;
+    while (fscanf(subor, "%s", line) != EOF) {
+        pocetRiadkov++;
+        if (strcmp(line, slovo) == 0) {
+            nasloSa = 1;
+            index = pocetRiadkov;
+            break;
+        }
+    }
+
+    fclose(subor);
+    return index;
+}
+
+int rovnaSaRiadku(char *slovo, int riadok, char *nazovSuboru) {
+    FILE *subor;
+
+    subor = fopen(nazovSuboru, "r");
+    if (subor == NULL) {
+        fputs("Error at opening File!", stderr);
+        exit(1);
+    }
+    int vysledok = 0;
+    char line[256];
+    int pocetRiadkov = 0;
+    while (fscanf(subor, "%s", line) != EOF) {
+        pocetRiadkov++;
+        if (pocetRiadkov == riadok) {
+            if (strcmp(line, slovo) == 0) {
+                vysledok = 1;
+            }
+        }
+    }
+
+    fclose(subor);
+    return vysledok;
 }
 
 void odoberKlienta(DATAC *client) {
@@ -73,9 +153,6 @@ void pridatKlienta(DATAC *client) {
         }
     }
 
-    for (int i = 0; i < pocet; ++i) {
-        printf("%s \n", poleKlientov[i]->login);
-    }
     pthread_mutex_unlock(&mutex);
 }
 
@@ -182,59 +259,14 @@ void *prihlasenie(void *datas) {
             perror("Error reading from socket");
         }
         trim(password, 100);
-
-        FILE *subor;
-
-        subor = fopen("loginy.txt", "r");
-        if (subor == NULL) {
-            fputs("Error at opening File!", stderr);
-            exit(1);
-        }
-        printf("Súbor otvorený \n");
-
-        int index = 0;
-        char line[256];
         int nasloSa = 0;
-        int pocetRiadkov = 0;
-        while (fscanf(subor, "%s", line) != EOF) {
-            pocetRiadkov++;
-            if (pocetRiadkov % 2 == 1) {
-                printf("%s \n", line);
-                if (strcmp(line, login) == 0) {
-                    printf("Username is already used.\n");
-                    const char *msg = "Username is already used.";
-                    nasloSa = 1;
-                    index = pocetRiadkov + 1;
-
-
-                }
-            }
+        int indexProfilu = indexSlovaVSubore(login, "loginy.txt");
+        if ( indexProfilu != -1) {
+            nasloSa = 1;
         }
-
-        fclose(subor);
         if (nasloSa == 1) {
+            int spravneHeslo = rovnaSaRiadku(password,indexProfilu+1,"loginy.txt");
 
-            subor = fopen("loginy.txt", "r");
-            if (subor == NULL) {
-                fputs("Error at opening File!", stderr);
-                exit(1);
-            }
-            printf("Súbor otvorený po 2hykrat\n");
-
-
-            nasloSa = 0;
-            pocetRiadkov = 0;
-            int spravneHeslo = 0;
-            while (fscanf(subor, "%s", line) != EOF) {
-                pocetRiadkov++;
-                if (pocetRiadkov == index) {
-                    if (strcmp(password, line) == 0) {
-                        printf("Uspesne prihlasenie\n");
-                        spravneHeslo = 1;
-                        break;
-                    }
-                }
-            }
             if (spravneHeslo == 1) {
                 n = write(data->socket, &spravneHeslo, sizeof(spravneHeslo));
                 if (n < 0) {
@@ -243,8 +275,6 @@ void *prihlasenie(void *datas) {
                 }
                 break;
             }
-
-
         } else {
             int spravneHeslo = 0;
             n = write(data->socket, &spravneHeslo, sizeof(spravneHeslo));
@@ -252,7 +282,6 @@ void *prihlasenie(void *datas) {
                 perror("Error writing to socket");
                 return NULL;
             }
-
         }
     }
     pocet++;
@@ -276,33 +305,11 @@ void *registration(void *datas) {
             perror("Error reading from socket");
         }
         trim(login, 100);
-        FILE *subor;
-
-        subor = fopen("loginy.txt", "r");
-        if (subor == NULL) {
-            fputs("Error at opening File!", stderr);
-            exit(1);
-        }
-        printf("Súbor otvorený \n");
-
-
-        char line[256];
         int nasloSa = 0;
-        int pocetRiadkov = 0;
-        while (fscanf(subor, "%s", line) != EOF) {
-
-            if (pocetRiadkov % 2 == 0) {
-                printf("%s \n", line);
-                if (strcmp(line, login) == 0) {
-                    printf("Username is already used.\n");
-                    const char *msg = "Username is already used.";
-                    nasloSa = 1;
-
-                }
-            }
-            pocetRiadkov++;
+        if(indexSlovaVSubore(login,"loginy.txt") != -1){
+            nasloSa = 1;
         }
-        fclose(subor);
+
         n = write(data->socket, &nasloSa, sizeof(nasloSa));
         if (n < 0) {
             perror("Error writing to socket");
@@ -316,20 +323,10 @@ void *registration(void *datas) {
             }
             trim(password, 100);
             printf("Zadané heslo %s \n", password);
-            FILE *subor;
-
-            subor = fopen("loginy.txt", "a");
-            if (subor == NULL) {
-                fputs("Error at opening File!", stderr);
-                exit(1);
-            }
-            fprintf(subor, "%s\n", login);
-            fprintf(subor, "%s\n", password);
-
-            fclose(subor);
+            vlozitDoSuboru(login,"loginy.txt");
+            vlozitDoSuboru(password,"loginy.txt");
             break;
         }
-
     }
     printf("Login zapísaný \n");
     hlavneMenu(data);
@@ -572,9 +569,8 @@ void hlavneMenu(DATAC *data) {
 }
 
 int main(int argc, char *argv[]) {
-    vlozitDoSuboru("slovo", "slovo.txt");
 
-/*
+
     int sockfd, newsockfd, n;
     socklen_t cli_len;
     struct sockaddr_in serv_addr, cli_addr;
@@ -618,5 +614,5 @@ int main(int argc, char *argv[]) {
 
         hlavneMenu(client);
 
-    }*/
+    }
 }
