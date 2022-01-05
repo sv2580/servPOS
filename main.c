@@ -23,6 +23,8 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 DATAC *poleKlientov[100] = {NULL};
 static int pocet;
 
+void *konverzaciaSkupina();
+
 void trim(char *string, int dlzka) {
     int i;
     for (i = 0; i < dlzka; i++) { // trim \n
@@ -47,6 +49,7 @@ void vlozitDoSuboru(char *riadok, char *nazovSuboru) {
     fprintf(subor, "%s\n", slovo);
 
     fclose(subor);
+
 }
 
 void *vytvorSkupKonverzaciu(void *data){
@@ -55,11 +58,11 @@ void *vytvorSkupKonverzaciu(void *data){
     int skonci = 0;
     int n;
     char contact[100];
-    char buffer[256];
+
 
 
     while(skonci == 0){
-
+        printf("zacina wile skonci == 0");
         n = read(datac->socket, contact, 99);
         if (n < 0) {
             perror("Error reading from socket");
@@ -71,27 +74,53 @@ void *vytvorSkupKonverzaciu(void *data){
         }
 
         int nasielSA = 0;
+        printf("zacina for");
         for (int i = 0; i < pocet; ++i) {
             if (strcmp(poleKlientov[i]->login, contact) == 0) {
                 nasielSA = 1;
                 vlozitDoSuboru(contact, "skupina.txt");
                 }
-
-
             }
+        printf("konci for");
 
         n = write(datac->socket, &nasielSA, sizeof(nasielSA));
         if (n < 0) {
             perror("Error writing to socket");
             return NULL;
         }
-        break;
+    }
+    pthread_t vlakno;
+    pthread_create(&vlakno, NULL, &konverzaciaSkupina, NULL);
+}
 
-        }
+void *konverzaciaSkupina(){
+    printf("pred break");
+    int pocetRiadkov = 0;
+    char line[256];
+
+    FILE *subor;
+    subor = fopen("skupina.txt", "r");
+    while (fscanf(subor, "%s", line) != EOF) {
+        pocetRiadkov++;
+    }
+    fclose(subor);
+
+    char array[pocetRiadkov][256];
+    pocetRiadkov = 0;
+    subor = fopen("skupina.txt", "r");
+    while (fscanf(subor, "%s", line) != EOF) {
+        strcpy(array[pocetRiadkov], line);
+        pocetRiadkov++;
+    }
+
+    fclose(subor);
+
+    printf("%s", array[0]);
+
+
 
 
 }
-
 
 void odstranitZoSuboru(int riadok, char *nazovSuboru) {
     FILE *subor;
@@ -674,6 +703,9 @@ void hlavneMenu(DATAC *data) {
     } else if (poziadavka == 7) {
         pthread_t vlakno_odobrania;
         pthread_create(&vlakno_odobrania, NULL, &odoberPriatelov, (void *) data);
+    } else if (poziadavka == 9) {
+        pthread_t skupinovka;
+        pthread_create(&skupinovka, NULL, &vytvorSkupKonverzaciu, (void *) data);
     }
 }
 
