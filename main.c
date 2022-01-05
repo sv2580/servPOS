@@ -16,6 +16,7 @@ typedef struct dataClient {
     char login[100];
     int socket;
     int id;
+    char skupina[10][100];
 } DATAC;
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -58,12 +59,13 @@ void *vytvorSkupKonverzaciu(void *data){
     int skonci = 0;
     int n;
     char contact[100];
-
+    int index = 0;
 
 
     while(skonci == 0){
-        printf("zacina wile skonci == 0");
+        printf("zacina while skonci == 0");
         n = read(datac->socket, contact, 99);
+        printf("%s", contact);
         if (n < 0) {
             perror("Error reading from socket");
         }
@@ -79,8 +81,14 @@ void *vytvorSkupKonverzaciu(void *data){
             if (strcmp(poleKlientov[i]->login, contact) == 0) {
                 nasielSA = 1;
                 vlozitDoSuboru(contact, "skupina.txt");
+                printf("udaj sa ulozil do suboru");
                 }
             }
+
+        //strcpy(poleKlientov[i]->skupina[index], datac->login);
+        //strcpy(datac->skupina[index], contact);
+        //index++;
+
         printf("konci for");
 
         n = write(datac->socket, &nasielSA, sizeof(nasielSA));
@@ -89,8 +97,8 @@ void *vytvorSkupKonverzaciu(void *data){
             return NULL;
         }
     }
-    pthread_t vlakno;
-    pthread_create(&vlakno, NULL, &konverzaciaSkupina, NULL);
+    pthread_t vlakno123;
+    pthread_create(&vlakno123, NULL, &konverzaciaSkupina, NULL);
 }
 
 void *konverzaciaSkupina(){
@@ -105,6 +113,7 @@ void *konverzaciaSkupina(){
     }
     fclose(subor);
 
+    printf("pred vkladanim");
     char array[pocetRiadkov][256];
     pocetRiadkov = 0;
     subor = fopen("skupina.txt", "r");
