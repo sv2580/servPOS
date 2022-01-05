@@ -49,6 +49,50 @@ void vlozitDoSuboru(char *riadok, char *nazovSuboru) {
     fclose(subor);
 }
 
+void *vytvorSkupKonverzaciu(void *data){
+    printf("uzivatel vytvara skup. konverzaciu \n");
+    DATAC *datac = (DATAC *) data;
+    int skonci = 0;
+    int n;
+    char contact[100];
+    char buffer[256];
+
+
+    while(skonci == 0){
+
+        n = read(datac->socket, contact, 99);
+        if (n < 0) {
+            perror("Error reading from socket");
+        }
+        trim(contact, 100);
+        if (strcmp(contact, "exit") == 0) {
+            skonci = 1;
+            break;
+        }
+
+        int nasielSA = 0;
+        for (int i = 0; i < pocet; ++i) {
+            if (strcmp(poleKlientov[i]->login, contact) == 0) {
+                nasielSA = 1;
+                vlozitDoSuboru(contact, "skupina.txt");
+                }
+
+
+            }
+
+        n = write(datac->socket, &nasielSA, sizeof(nasielSA));
+        if (n < 0) {
+            perror("Error writing to socket");
+            return NULL;
+        }
+        break;
+
+        }
+
+
+}
+
+
 void odstranitZoSuboru(int riadok, char *nazovSuboru) {
     FILE *subor;
     FILE *novysubor;
@@ -163,6 +207,58 @@ void *posliSubor(void *data){
     int n = 0;
     char buffer[256];
     int newsockfd = (*datac).socket;
+
+    char contact[100];
+    trim(contact, 100);
+    sprintf(buffer, "Here is the contact: %s\n", contact);
+    printf("%s", buffer);
+
+    bzero(buffer, 256);
+    n = 0;
+
+
+    int nasielSA = 0;
+    int read_size = 0;
+    int sent_size = 0;
+    char buff[20] = {0};
+    int j = 0;
+
+    for (int i = 0; i < pocet; ++i) {
+        printf("%d. %s %s\n", i, poleKlientov[i]->login, contact);
+        if (strcmp(poleKlientov[i]->login, contact) == 0) {
+            nasielSA = 1;
+            bzero(buffer, 256);
+            n = read(newsockfd, buffer, 255);
+            if (n < 0) {
+                perror("Error reading from socket");
+                return NULL;
+            }
+            printf("Here is the file: %s\n", buffer);
+
+            FILE * subor;
+            subor = fopen(buffer, "w");
+            if (subor == NULL) {
+                fputs("Error at opening File!", stderr);
+                exit(1);
+            }
+
+
+            while((read_size=fread(buffer,1,20,subor))>0)
+            {
+                sent_size=send(poleKlientov[i]->socket,buff,read_size , 0 );
+                fprintf(stderr,"%d th sent_size  %d\n",j,sent_size); //Just printing how many bytes have been sent in every iteration.
+                if(read_size!=20)
+                {
+                    fprintf(stderr,"%dth read... read_size is not 20 and it is %d\n",i,read_size ); //printing the last few remaining bytes when the last read from the file might not have exact 20 bytes
+                }
+                j++;
+            }
+
+            //send(poleKlientov[i]->socket,status,strlen(status)+1, 0 );
+
+        }
+
+    }
 
 
 
