@@ -156,6 +156,19 @@ void pridatKlienta(DATAC *client) {
     pthread_mutex_unlock(&mutex);
 }
 
+void *posliSubor(void *data){
+    printf("SOM V POSLI SUBOR - SERVER \n");
+
+    DATAC *datac = (DATAC *) data;
+    int n = 0;
+    char buffer[256];
+    int newsockfd = (*datac).socket;
+
+
+
+
+}
+
 void *komunikacia(void *data) {
     printf("SOM TU 6 \n");
 
