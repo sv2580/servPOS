@@ -825,6 +825,8 @@ void *prijmiData(void *datas) {
     printf("Som tu");
     hlavneMenu(data);
 
+
+
 }
 
 void hlavneMenu(DATAC *data) {
