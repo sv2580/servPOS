@@ -77,7 +77,7 @@ void *vytvorSkupKonverzaciu(void *data) {
     int n;
     char contact[100];
     int index = 0;
-
+    DATAC *pole[10];
 
     while (skonci == 0) {
         printf("zacina while skonci == 0");
@@ -97,25 +97,61 @@ void *vytvorSkupKonverzaciu(void *data) {
         for (int i = 0; i < pocet; ++i) {
             if (strcmp(poleKlientov[i]->login, contact) == 0) {
                 nasielSA = 1;
+                pole[i] = poleKlientov[i];
                 vlozitDoSuboru(contact, "skupina.txt");
                 printf("udaj sa ulozil do suboru");
+
             }
         }
 
-        //strcpy(poleKlientov[i]->skupina[index], datac->login);
-        //strcpy(datac->skupina[index], contact);
-        //index++;
-
         printf("konci for");
-
         n = write(datac->socket, &nasielSA, sizeof(nasielSA));
         if (n < 0) {
             perror("Error writing to socket");
             return NULL;
         }
     }
-    pthread_t vlakno123;
-    pthread_create(&vlakno123, NULL, &konverzaciaSkupina, NULL);
+    vlozitDoSuboru(datac->login, "skupina.txt");
+    FILE *subor;
+
+    subor = fopen("skupina.txt", "r");
+    if (subor == NULL) {
+        fputs("Error at opening File!", stderr);
+        exit(1);
+    }
+    char line[256];
+    int pocetRiadkov = 0;
+    while (fscanf(subor, "%s", line) != EOF) {
+        pocetRiadkov++;
+    }
+
+    fclose(subor);
+
+    for (int i = 0; i < pocetRiadkov; ++i) {
+        FILE *subor;
+
+        subor = fopen("skupina.txt", "r");
+        if (subor == NULL) {
+            fputs("Error at opening File!", stderr);
+            exit(1);
+        }
+        char line[256];
+        int n = 0;
+        while (fscanf(subor, "%s", line) != EOF) {
+            if(strcmp(line, pole[i]->login) != 0){
+                strcpy(pole[i]->skupina[n], line);
+            }
+            n++;
+        }
+        fclose(subor);
+
+        printf("Login: %s",pole[i]->login);
+        printf("Skupina:");
+        for (int j = 0; j < pocetRiadkov-1; ++j) {
+            printf("%s",pole[i]->skupina[j]);
+        }
+    }
+
 }
 
 void *konverzaciaSkupina() {
