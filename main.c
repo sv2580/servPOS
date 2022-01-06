@@ -25,7 +25,9 @@ DATAC *poleKlientov[100] = {NULL};
 static int pocet;
 
 void *konverzaciaSkupina();
+
 void hlavneMenu(DATAC *data);
+
 void trim(char *string, int dlzka) {
     int i;
     for (i = 0; i < dlzka; i++) { // trim \n
@@ -53,7 +55,22 @@ void vlozitDoSuboru(char *riadok, char *nazovSuboru) {
 
 }
 
-void *vytvorSkupKonverzaciu(void *data){
+int vlozitDoSuboruData(char *riadok, int n, char *nazovSuboru) {
+    char buffer[1025];
+    sprintf(buffer, "%s", riadok);
+    FILE *subor;
+    subor = fopen(nazovSuboru, "a");
+    if (subor == NULL) {
+        fputs("Error at opening File!", stderr);
+        return -1;
+    }
+    fwrite(buffer, 1, n, subor);
+
+    fclose(subor);
+    return 1;
+}
+
+void *vytvorSkupKonverzaciu(void *data) {
     printf("uzivatel vytvara skup. konverzaciu \n");
     DATAC *datac = (DATAC *) data;
     int skonci = 0;
@@ -62,7 +79,7 @@ void *vytvorSkupKonverzaciu(void *data){
     int index = 0;
 
 
-    while(skonci == 0){
+    while (skonci == 0) {
         printf("zacina while skonci == 0");
         n = read(datac->socket, contact, 99);
         printf("%s", contact);
@@ -82,8 +99,8 @@ void *vytvorSkupKonverzaciu(void *data){
                 nasielSA = 1;
                 vlozitDoSuboru(contact, "skupina.txt");
                 printf("udaj sa ulozil do suboru");
-                }
             }
+        }
 
         //strcpy(poleKlientov[i]->skupina[index], datac->login);
         //strcpy(datac->skupina[index], contact);
@@ -101,7 +118,7 @@ void *vytvorSkupKonverzaciu(void *data){
     pthread_create(&vlakno123, NULL, &konverzaciaSkupina, NULL);
 }
 
-void *konverzaciaSkupina(){
+void *konverzaciaSkupina() {
     printf("pred break");
     int pocetRiadkov = 0;
     char line[256];
@@ -125,8 +142,6 @@ void *konverzaciaSkupina(){
     fclose(subor);
 
     printf("%s", array[0]);
-
-
 
 
 }
@@ -238,7 +253,7 @@ void pridatKlienta(DATAC *client) {
     pthread_mutex_unlock(&mutex);
 }
 
-void *posliSubor(void *data){
+void *posliSubor(void *data) {
     printf("SOM V POSLI SUBOR - SERVER \n");
 
     DATAC *datac = (DATAC *) data;
@@ -273,7 +288,7 @@ void *posliSubor(void *data){
             }
             printf("Here is the file: %s\n", buffer);
 
-            FILE * subor;
+            FILE *subor;
             subor = fopen(buffer, "w");
             if (subor == NULL) {
                 fputs("Error at opening File!", stderr);
@@ -281,13 +296,13 @@ void *posliSubor(void *data){
             }
 
 
-            while((read_size=fread(buffer,1,20,subor))>0)
-            {
-                sent_size=send(poleKlientov[i]->socket,buff,read_size , 0 );
-                fprintf(stderr,"%d th sent_size  %d\n",j,sent_size); //Just printing how many bytes have been sent in every iteration.
-                if(read_size!=20)
-                {
-                    fprintf(stderr,"%dth read... read_size is not 20 and it is %d\n",i,read_size ); //printing the last few remaining bytes when the last read from the file might not have exact 20 bytes
+            while ((read_size = fread(buffer, 1, 20, subor)) > 0) {
+                sent_size = send(poleKlientov[i]->socket, buff, read_size, 0);
+                fprintf(stderr, "%d th sent_size  %d\n", j,
+                        sent_size); //Just printing how many bytes have been sent in every iteration.
+                if (read_size != 20) {
+                    fprintf(stderr, "%dth read... read_size is not 20 and it is %d\n", i,
+                            read_size); //printing the last few remaining bytes when the last read from the file might not have exact 20 bytes
                 }
                 j++;
             }
@@ -297,8 +312,6 @@ void *posliSubor(void *data){
         }
 
     }
-
-
 
 
 }
@@ -470,11 +483,11 @@ void *prihlasenie(void *datas) {
         trim(password, 100);
         int nasloSa = 0;
         int indexProfilu = indexSlovaVSubore(login, "loginy.txt");
-        if ( indexProfilu != -1) {
+        if (indexProfilu != -1) {
             nasloSa = 1;
         }
         if (nasloSa == 1) {
-            int spravneHeslo = rovnaSaRiadku(password,indexProfilu+1,"loginy.txt");
+            int spravneHeslo = rovnaSaRiadku(password, indexProfilu + 1, "loginy.txt");
 
             if (spravneHeslo == 1) {
                 n = write(data->socket, &spravneHeslo, sizeof(spravneHeslo));
@@ -515,7 +528,7 @@ void *registration(void *datas) {
         }
         trim(login, 100);
         int nasloSa = 0;
-        if(indexSlovaVSubore(login,"loginy.txt") != -1){
+        if (indexSlovaVSubore(login, "loginy.txt") != -1) {
             nasloSa = 1;
         }
 
@@ -532,8 +545,8 @@ void *registration(void *datas) {
             }
             trim(password, 100);
             printf("Zadané heslo %s \n", password);
-            vlozitDoSuboru(login,"loginy.txt");
-            vlozitDoSuboru(password,"loginy.txt");
+            vlozitDoSuboru(login, "loginy.txt");
+            vlozitDoSuboru(password, "loginy.txt");
             break;
         }
     }
@@ -688,40 +701,128 @@ void *odoberPriatelov(void *datas) {
 
 }
 
-void *odosliData(void *datas) {
+/*void *odosliData(void * datas){
+    DATAC *data = (DATAC *) datas;
+    char nazovSuboru[100];
+    bzero(nazovSuboru, 100);
+    int n;
+
+    FILE *subor;
+    subor = fopen("suborcopy.txt", "rb");
+    char buffer[256] = {0};
+    FILE *fp;
+
+    int counter = 0;
+    fp = fopen(nazovSuboru, "r");
+    while (fgetc(fp) != EOF)
+        counter++;
+    printf("there are %d letters", counter);
+    fclose(fp);
+
+    n=write(data->socket,&counter,sizeof (counter));
+    if (n < 0) {
+        perror("Error writing to socket");
+        return NULL;
+    }
+    printf("som tu \n");
+    if (subor != NULL) {
+        while ((n = fread(buffer, 1, sizeof(buffer), subor)) >= counter) {
+            send(data->socket, buffer, n, 0);
+            printf("%s %d \n", buffer, n);
+        }
+    }
+
+    fclose(subor);
+    hlavneMenu();
+}*/
+
+void *prijmiData(void *datas) {
+    for (int i = 0; i < pocet; ++i) {
+        printf("%s \n",poleKlientov[i]->login);
+    }
+
     DATAC *data = (DATAC *) datas;
     int n;
     char contact[100];
     char buffer[256];
     bzero(buffer, 256);
-    n = read(data->socket, contact, 99);
+
+    int counter;
+    n = read(data->socket, &counter, sizeof(counter));
+    if (n < 0) {
+        perror("Error writing to socket");
+        return NULL;
+    }
+    printf("%d", counter);
+    int tot = 0;
+
+    while (tot < counter) {
+        (n = recv(data->socket, buffer, 1024, 0));
+        tot += n;
+        printf("%s %d \n", buffer, n);
+        int a = vlozitDoSuboruData(buffer, n, "suborcopy.txt");
+        if (a != 1) {
+            printf("Chyba");
+        }
+    }
+
+    printf("Received byte: %d\n", tot);
+    if (n < 0) {
+        perror("Receiving");
+    }
+    bzero(contact, 100);
+    n = recv(data->socket, contact, 99, 0);
     if (n < 0) {
         perror("Error reading from socket");
     }
+    trim(contact,100);
+    printf("%s", contact);
 
-    char *filename = "file2.txt";
-    FILE *fp = fopen(filename,"w");
-    while (1) {
+    int nasielSA = 0;
+    for (int i = 0; i < pocet; ++i) {
+        if (strcmp(poleKlientov[i]->login, contact) == 0) {
+            nasielSA = 1;
+            printf("Nasiel sa klient\n");
+            char nazovSuboru[100];
+            bzero(nazovSuboru, 100);
+            int n;
+            char buff[256] = {0};
+            FILE *fp;
+            printf("1\n");
+            int count = 0;
+            fp = fopen("suborcopy.txt", "r");
+            while (fgetc(fp) != EOF)
+                count++;
+            printf("there are %d letters", count);
+            fclose(fp);
+            printf("1\n");
+            FILE *subor;
+            subor = fopen("suborcopy.txt", "rb");
+            n=write(poleKlientov[i]->socket,&count,sizeof (count));
+            if (n < 0) {
+                perror("Error writing to socket");
+                return NULL;
+            }
+            printf("som tu \n");
+            if (subor != NULL) {
+                while ((n = fread(buff, 1, sizeof(buff), subor)) >= count) {
+                    send(poleKlientov[i]->socket, buff, n, 0);
+                    printf("%s %d \n", buff, n);
+                }
+            }
 
-        n = read(data->socket, buffer, 255);
-        if (n < 0) {
-            perror("Error reading from socket");
+            fclose(subor);
         }
-        printf("%s\n",buffer);
-        trim(buffer,256);
-        printf("%s\n",buffer);
-        if (n <= 0) {
-            printf("koniec \n");
-            hlavneMenu(data);
-            break;
-        }
-
-        fprintf(fp, "%s", buffer);
-        vlozitDoSuboru(buffer,"inysubor.txt");
-
-        bzero(buffer, 256);
     }
-    fclose(fp);
+    n = write(data->socket, &nasielSA, sizeof(nasielSA));
+    if (n < 0) {
+        perror("Error writing to socket");
+        return NULL;
+    }
+    printf("Som tu");
+
+    remove("suborcopy.txt");
+    printf("Som tu");
     hlavneMenu(data);
 
 }
@@ -761,7 +862,7 @@ void hlavneMenu(DATAC *data) {
         pthread_create(&skupinovka, NULL, &vytvorSkupKonverzaciu, (void *) data);
     } else if (poziadavka == 10) {
         pthread_t vlakno_data;
-        pthread_create(&vlakno_data, NULL, &odosliData, (void *) data);
+        pthread_create(&vlakno_data, NULL, &prijmiData, (void *) data);
     }
 }
 
