@@ -263,6 +263,26 @@ int indexSlovaVSubore(char *slovo, char *nazovSuboru) {
     return index;
 }
 
+int pocetVyskytov(char *slovo, char *nazovSuboru) {
+    FILE *subor;
+
+    subor = fopen(nazovSuboru, "r");
+    if (subor == NULL) {
+        fputs("Error at opening File!", stderr);
+        exit(1);
+    }
+    int index = 0;
+    char line[256];
+    while (fscanf(subor, "%s", line) != EOF) {
+        if (strcmp(line, slovo) == 0) {
+            index++;
+        }
+    }
+
+    fclose(subor);
+    return index;
+}
+
 int rovnaSaRiadku(char *slovo, int riadok, char *nazovSuboru) {
     FILE *subor;
 
@@ -328,7 +348,21 @@ void *nacitajPolePriatelov(void *datas) {
     char meno1[100];
     char meno2[100];
     char line[100];
+    int koniec ;
+
     int pocetRiadkov = 0;
+    int pocetPriatelov = pocetVyskytov(data->login,"friends.txt");
+    printf("Počet priatelov %d \n",pocetPriatelov);
+    if(pocetPriatelov == 0){
+        int koniec = 1;
+        n = write(data->socket, &koniec, sizeof(koniec));
+        if (n < 0) {
+            perror("Error writing to socket");
+            return NULL;
+        }
+        return NULL;
+    }
+
     while (fscanf(subor, "%s", line) != EOF) {
         pocetRiadkov++;
         if (pocetRiadkov % 2 == 1) {
@@ -336,6 +370,13 @@ void *nacitajPolePriatelov(void *datas) {
         } else {
             strcpy(meno2, line);
             if (strcmp(meno1, data->login) == 0) {
+                koniec = 0;
+                n = write(data->socket, &koniec, sizeof(koniec));
+                if (n < 0) {
+                    perror("Error writing to socket");
+                    return NULL;
+                }
+
                 strcpy(contact, meno2);
                 n = write(data->socket, contact, strlen(contact));
                 if (n < 0) {
@@ -346,6 +387,13 @@ void *nacitajPolePriatelov(void *datas) {
 
             }
             if (strcmp(meno2, data->login) == 0) {
+                koniec = 0;
+                n = write(data->socket, &koniec, sizeof(koniec));
+                if (n < 0) {
+                    perror("Error writing to socket");
+                    return NULL;
+                }
+
                 strcpy(contact, meno1);
                 n = write(data->socket, contact, strlen(contact));
                 if (n < 0) {
@@ -356,16 +404,11 @@ void *nacitajPolePriatelov(void *datas) {
 
             }
             printf("%s\n", contact);
-            int koniec = 0;
-            n = write(data->socket, &koniec, sizeof(koniec));
-            if (n < 0) {
-                perror("Error writing to socket");
-                return NULL;
-            }
+
         }
     }
     fclose(subor);
-    int koniec = 1;
+    koniec = 1;
     n = write(data->socket, &koniec, sizeof(koniec));
     if (n < 0) {
         perror("Error writing to socket");
@@ -502,6 +545,8 @@ void *prihlasenie(void *datas) {
     }
     pocet++;
     pridatKlienta(data);
+    pthread_t vlakno_pole;
+    pthread_create(&vlakno_pole, NULL, &nacitajPolePriatelov, (void *) data);
 
     hlavneMenu(data);
 
