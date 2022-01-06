@@ -40,12 +40,12 @@ void trim(char *string, int dlzka) {
 
 }
 
-void *spravySkupinovaKonv(void * data){
+void *spravySkupinovaKonv(void *data) {
     DATAC *datac = (DATAC *) data;
 
-    printf("Užívateľ %s a jeho skupina \n",datac->login);
+    printf("Užívateľ %s a jeho skupina \n", datac->login);
     for (int i = 0; i < datac->pocetLudiVSkupine; ++i) {
-        printf("%s: \n",datac->skupina[i]);
+        printf("%s: \n", datac->skupina[i]);
 
     }
     int n = 0;
@@ -135,7 +135,7 @@ void *vytvorSkupKonverzaciu(void *data) {
             if (strcmp(poleKlientov[i]->login, contact) == 0) {
                 nasielSA = 1;
                 pole[index] = poleKlientov[i];
-                printf("Na index %d je %s \n",index, pole[index]->login);
+                printf("Na index %d je %s \n", index, pole[index]->login);
                 vlozitDoSuboru(contact, "skupina.txt");
                 printf("udaj sa ulozil do suboru");
                 break;
@@ -152,7 +152,7 @@ void *vytvorSkupKonverzaciu(void *data) {
         index++;
     }
     pole[index] = datac;
-    printf("Na index %d je %s \n",index, pole[index]->login);
+    printf("Na index %d je %s \n", index, pole[index]->login);
 
     vlozitDoSuboru(datac->login, "skupina.txt");
     FILE *subor;
@@ -185,19 +185,19 @@ void *vytvorSkupKonverzaciu(void *data) {
         n = 0;
         int id = 0;
         while (fscanf(file, "%s", slovo) != EOF) {
-            if(strcmp(slovo, pole[i]->login) != 0){
+            if (strcmp(slovo, pole[i]->login) != 0) {
                 strcpy(pole[i]->skupina[id], slovo);
-                printf("Niečo %s \n",pole[i]->skupina[id]);
+                printf("Niečo %s \n", pole[i]->skupina[id]);
                 id++;
             }
             n++;
         }
         fclose(file);
 
-        printf("Login: %s \n",pole[i]->login);
+        printf("Login: %s \n", pole[i]->login);
         printf("Skupina: \n");
-        for (int j = 0; j < pocetRiadkov-1; ++j) {
-            printf("%s \n",pole[i]->skupina[j]);
+        for (int j = 0; j < pocetRiadkov - 1; ++j) {
+            printf("%s \n", pole[i]->skupina[j]);
         }
 
         pole[i]->pocetLudiVSkupine = pocetRiadkov;
@@ -348,12 +348,12 @@ void *nacitajPolePriatelov(void *datas) {
     char meno1[100];
     char meno2[100];
     char line[100];
-    int koniec ;
+    int koniec;
 
     int pocetRiadkov = 0;
-    int pocetPriatelov = pocetVyskytov(data->login,"friends.txt");
-    printf("Počet priatelov %d \n",pocetPriatelov);
-    if(pocetPriatelov == 0){
+    int pocetPriatelov = pocetVyskytov(data->login, "friends.txt");
+    printf("Počet priatelov %d \n", pocetPriatelov);
+    if (pocetPriatelov == 0) {
         int koniec = 1;
         n = write(data->socket, &koniec, sizeof(koniec));
         if (n < 0) {
@@ -490,6 +490,71 @@ void *komunikacia(void *data) {
         }
         bzero(buffer, 256);
     }
+}
+
+void *sifrovaneSpravy(void *data) {
+    DATAC *datac = (DATAC *) data;
+    int n = 0;
+    int newsockfd = (*datac).socket;
+    char buffer[256];
+
+
+    char contact[100] = {};
+    n = read(newsockfd, contact, 99);
+    if (n < 0) {
+        perror("Error reading from socket");
+    }
+
+    trim(contact, 100);
+    int nasielSa = 1;
+    if (pocetVyskytov(contact, "loginy.txt") == 0) {
+        nasielSa = 0;
+    }
+    n = write(newsockfd, &nasielSa, sizeof(nasielSa));
+    if (n < 0) {
+        perror("Error writing to socket");
+        return NULL;
+    }
+    sprintf(buffer, "Contact: %s\n", contact);
+    printf("%s", buffer);
+    bzero(buffer, 256);
+    n = 0;
+
+    n = read(newsockfd, buffer, 255);
+    if (n < 0) {
+        perror("Error reading from socket");
+        return NULL;
+    }
+
+    int posun;
+    n = read(newsockfd, &posun, sizeof(posun));
+    if (n < 0) {
+        perror("Error writing to socket");
+        return NULL;
+    }
+    char sifra[256];
+    printf("Message: %s\n", buffer);
+    for (int i = 0; i < strlen(buffer); ++i) {
+        char znak = buffer[i];
+        char zasifrovanyZnak = 'a' + ((znak - 'a') + posun) % ('z' - 'a');
+        sifra[i] = zasifrovanyZnak;
+        printf("Vlakno zasifrovalo %d znak %c na znak %c\n", znak, i + 1, zasifrovanyZnak);
+    }
+    vlozitDoSuboru(datac->login, "sifrovane.txt");
+    vlozitDoSuboru(contact, "sifrovane.txt");
+    char slovo[100];
+    FILE *subor;
+    subor = fopen("sifrovane.txt", "a");
+    if (subor == NULL) {
+        fputs("Error at opening File!", stderr);
+        exit(1);
+    }
+    fprintf(subor, "%d\n", posun);
+
+    fclose(subor);
+    vlozitDoSuboru(sifra, "sifrovane.txt");
+
+    hlavneMenu(datac);
 }
 
 void *prihlasenie(void *datas) {
@@ -832,8 +897,40 @@ void *prijmiData(void *datas) {
 
 void hlavneMenu(DATAC *data) {
     printf("Som v hlavnom menu \n");
+    int p = indexSlovaVSubore(data->login,"sifrovane.txt");
+    int n = write(data->socket, &p, sizeof(p));
+    if (n < 0) {
+        perror("Error writing to socket");
+        return;
+    }
+    char slovo[256];
+    if((p + 2)%4 == 0){
+        FILE *subor;
+        char line[256];
+        subor = fopen("sifrovane.txt", "a");
+        if (subor == NULL) {
+            fputs("Error at opening File!", stderr);
+            exit(1);
+        }
+        int pocetRiadkov = 0;
+        while (fscanf(subor, "%s", line) != EOF) {
+            pocetRiadkov++;
+            if(pocetRiadkov == p + 2){
+                strcpy(slovo,line);
+            }
+        }
+        fclose(subor);
 
-    int n;
+        n = write(data->socket, slovo, strlen(slovo));
+        if (n < 0) {
+            perror("Error writing to socket");
+            return;
+        }
+    }
+
+    printf("%s \n",slovo);
+
+
     int poziadavka;
     n = read(data->socket, &poziadavka, sizeof(poziadavka));
     if (n < 0) {
@@ -871,6 +968,9 @@ void hlavneMenu(DATAC *data) {
     } else if (poziadavka == 12) {
         pthread_t vlakno_skupina;
         pthread_create(&vlakno_skupina, NULL, &spravySkupinovaKonv, (void *) data);
+    } else if (poziadavka == 13) {
+        pthread_t vlakno_sifrovanie;
+        pthread_create(&vlakno_sifrovanie, NULL, &sifrovaneSpravy, (void *) data);
     }
 }
 
