@@ -130,20 +130,18 @@ void *vytvorSkupKonverzaciu(void *data) {
 
         printf("%s \n", contact);
         int nasielSA = 0;
-        printf("zacina for \n");
         for (int i = 0; i < pocet; ++i) {
             if (strcmp(poleKlientov[i]->login, contact) == 0) {
                 nasielSA = 1;
                 pole[index] = poleKlientov[i];
                 printf("Na index %d je %s \n", index, pole[index]->login);
                 vlozitDoSuboru(contact, "skupina.txt");
-                printf("udaj sa ulozil do suboru");
                 break;
             }
         }
-        printf("%d - nasiel sa \n", nasielSA);
+        printf("používateľ %d - sa našiel\n", nasielSA);
 
-        printf("konci for");
+
         n = write(datac->socket, &nasielSA, sizeof(nasielSA));
         if (n < 0) {
             perror("Error writing to socket");
@@ -169,13 +167,13 @@ void *vytvorSkupKonverzaciu(void *data) {
     }
 
     fclose(subor);
-    printf("počet riadkov %d \n", pocetRiadkov);
+    //printf("počet riadkov %d \n", pocetRiadkov);
 
     for (int i = 0; i < pocetRiadkov; ++i) {
         FILE *file;
 
         file = fopen("skupina.txt", "r");
-        printf("Súbor otvorený \n");
+        //printf("Súbor otvorený \n");
 
         if (file == NULL) {
             fputs("Error at opening File!", stderr);
@@ -557,6 +555,60 @@ void *sifrovaneSpravy(void *data) {
     hlavneMenu(datac);
 }
 
+void *desifrovanieSpravy(void *data) {
+    printf("Som tu \n");
+    DATAC *datac = (DATAC *) data;
+    int n = 0;
+    int newsockfd = (*datac).socket;
+    int p = indexSlovaVSubore(datac->login, "sifrovane.txt");
+    printf("p = %d \n",p);
+    char line[256];
+    int posun;
+
+    FILE *subor;
+    subor = fopen("sifrovane.txt", "r");
+    if (subor == NULL) {
+        fputs("Error at opening File!", stderr);
+        exit(1);
+    }
+    int pocetRiadkov = 0;
+    while (fscanf(subor, "%s", line) != EOF) {
+
+        pocetRiadkov++;
+        if (pocetRiadkov == (p - 1)){
+            n = write(newsockfd, line, strlen(line));
+            if (n < 0) {
+                perror("Error writing to socket");
+                return NULL;
+            }
+        }
+        if (pocetRiadkov == (p + 1)){
+            posun = atoi(line);
+            n = write(newsockfd, &posun, sizeof (posun));
+            if (n < 0) {
+                perror("Error writing to socket");
+                return NULL;
+            }
+        }
+        if (pocetRiadkov == (p + 2)) {
+            break;
+        }
+    }
+    printf("Zašifrované slovo: %s \n",line);
+    n = write(newsockfd, line, strlen(line));
+    if (n < 0) {
+        perror("Error writing to socket");
+        return NULL;
+    }
+
+    fclose(subor);
+    odstranitZoSuboru(p-1,"sifrovane.txt");
+    odstranitZoSuboru(p-1,"sifrovane.txt");
+    odstranitZoSuboru(p-1,"sifrovane.txt");
+    odstranitZoSuboru(p-1,"sifrovane.txt");
+    hlavneMenu(datac);
+}
+
 void *prihlasenie(void *datas) {
     int n;
     char login[100];
@@ -583,9 +635,11 @@ void *prihlasenie(void *datas) {
             perror("Error reading from socket");
         }
         trim(password, 100);
+
         int nasloSa = 0;
         int indexProfilu = indexSlovaVSubore(login, "loginy.txt");
-        if (indexProfilu != -1) {
+        int indexHesla = rovnaSaRiadku(password, (indexProfilu+1), "loginy.txt");
+        if (indexProfilu != -1 && indexHesla == 1) {
             nasloSa = 1;
         }
         if (nasloSa == 1) {
@@ -897,39 +951,12 @@ void *prijmiData(void *datas) {
 
 void hlavneMenu(DATAC *data) {
     printf("Som v hlavnom menu \n");
-    int p = indexSlovaVSubore(data->login,"sifrovane.txt");
+    int p = indexSlovaVSubore(data->login, "sifrovane.txt");
     int n = write(data->socket, &p, sizeof(p));
     if (n < 0) {
         perror("Error writing to socket");
         return;
     }
-    char slovo[256];
-    if((p + 2)%4 == 0){
-        FILE *subor;
-        char line[256];
-        subor = fopen("sifrovane.txt", "a");
-        if (subor == NULL) {
-            fputs("Error at opening File!", stderr);
-            exit(1);
-        }
-        int pocetRiadkov = 0;
-        while (fscanf(subor, "%s", line) != EOF) {
-            pocetRiadkov++;
-            if(pocetRiadkov == p + 2){
-                strcpy(slovo,line);
-            }
-        }
-        fclose(subor);
-
-        n = write(data->socket, slovo, strlen(slovo));
-        if (n < 0) {
-            perror("Error writing to socket");
-            return;
-        }
-    }
-
-    printf("%s \n",slovo);
-
 
     int poziadavka;
     n = read(data->socket, &poziadavka, sizeof(poziadavka));
@@ -971,6 +998,11 @@ void hlavneMenu(DATAC *data) {
     } else if (poziadavka == 13) {
         pthread_t vlakno_sifrovanie;
         pthread_create(&vlakno_sifrovanie, NULL, &sifrovaneSpravy, (void *) data);
+    } else if (poziadavka == 14) {
+        pthread_t vlakno_desifrovanie;
+        pthread_create(&vlakno_desifrovanie, NULL, &desifrovanieSpravy, (void *) data);
+    } else {
+        hlavneMenu(data);
     }
 }
 
