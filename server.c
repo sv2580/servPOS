@@ -93,13 +93,11 @@ void *vytvorSkupKonverzaciu(void *data) {
             break;
         }
 
-        printf("%s \n", contact);
         int nasielSA = 0;
         for (int i = 0; i < pocet; ++i) {
             if (strcmp(poleKlientov[i]->login, contact) == 0) {
                 nasielSA = 1;
                 pole[index] = poleKlientov[i];
-                printf("Na index %d je %s \n", index, pole[index]->login);
                 vlozitDoSuboru(contact, "skupina.txt");
                 break;
             }
@@ -115,7 +113,6 @@ void *vytvorSkupKonverzaciu(void *data) {
         index++;
     }
     pole[index] = datac;
-    printf("Na index %d je %s \n", index, pole[index]->login);
 
     vlozitDoSuboru(datac->login, "skupina.txt");
     FILE *subor;
@@ -150,7 +147,6 @@ void *vytvorSkupKonverzaciu(void *data) {
         while (fscanf(file, "%s", slovo) != EOF) {
             if (strcmp(slovo, pole[i]->login) != 0) {
                 strcpy(pole[i]->skupina[id], slovo);
-                printf("Niečo %s \n", pole[i]->skupina[id]);
                 id++;
             }
             n++;
@@ -221,7 +217,7 @@ void *komunikacia(void *data) {
         }
 
         trim(contact, 100);
-        sprintf(buffer, "Here is the contact: %s\n", contact);
+        sprintf(buffer, " %s\n", contact);
         printf("%s", buffer);
 
         bzero(buffer, 255);
@@ -230,7 +226,6 @@ void *komunikacia(void *data) {
 
         int nasielSA = 0;
         for (int i = 0; i < pocet; ++i) {
-            printf("%d. %s %s\n", i, poleKlientov[i]->login, contact);
             if (strcmp(poleKlientov[i]->login, contact) == 0) {
                 bzero(contact, 99);
                 nasielSA = 1;
@@ -245,7 +240,7 @@ void *komunikacia(void *data) {
                     return NULL;
                 }
 
-                printf("Here is the message: %s\n", buffer);
+                printf("%s\n", buffer);
 
                 n = write(poleKlientov[i]->socket, buffer, strlen(buffer));
                 if (n < 0) {
@@ -265,7 +260,7 @@ void *komunikacia(void *data) {
                 perror("Error reading from socket");
                 return NULL;
             }
-            printf("Message: %s\n", buffer);
+            printf("Neodoslaná správa: %s\n", buffer);
 
 
         }
@@ -345,7 +340,6 @@ void *desifrovanieSpravy(void *data) {
     int n = 0;
     int newsockfd = (*datac).socket;
     int p = indexSlovaVSubore(datac->login, "sifrovane.txt");
-    printf("%d ", p);
 
     n = write(newsockfd, &p, sizeof(p));
     if (n < 0) {
@@ -353,7 +347,6 @@ void *desifrovanieSpravy(void *data) {
         return NULL;
     }
     if (p != -1 && p != 1) {
-        printf("p = %d \n", p);
         char line[256];
         int posun;
 
@@ -422,6 +415,7 @@ void *prihlasenie(void *datas) {
         if (n < 0) {
             perror("Error reading from socket");
         }
+        printf("Som tu \n");
         trim(login, 100);
         if (strcmp(login, "exit") == 0) {
             hlavneMenu(data);
@@ -529,6 +523,7 @@ void *registration(void *datas) {
         if (n < 0) {
             perror("Error reading from socket");
         }
+        printf("%s login,",login);
         trim(login, 100);
         if (strcmp(login, "exit") == 0) {
             hlavneMenu(data);
@@ -650,7 +645,6 @@ void *pridajPriatelov(void *datas) {
         nasielSa = 1;
     }
 
-    printf("Som tu, %d \n", nasielSa);
     n = write(data->socket, &nasielSa, sizeof(nasielSa));
     if (n < 0) {
         perror("Error writing to socket");
@@ -678,7 +672,6 @@ void *pozriZiadosti(void *datas) {
     if (pocetVyskytov(data->login, "requests.txt") == 0) {
         nasielSa = 0;
     }
-    printf("Som tu, %d \n", nasielSa);
     n = write(data->socket, &nasielSa, sizeof(nasielSa));
     if (n < 0) {
         perror("Error writing to socket");
@@ -790,9 +783,7 @@ void *odoberPriatelov(void *datas) {
 }
 
 void *prijmiData(void *datas) {
-    for (int i = 0; i < pocet; ++i) {
-        printf("%s \n", poleKlientov[i]->login);
-    }
+
 
     DATAC *data = (DATAC *) datas;
     int n;
@@ -806,13 +797,11 @@ void *prijmiData(void *datas) {
         perror("Error writing to socket");
         return NULL;
     }
-    printf("%d", counter);
     int tot = 0;
 
     while (tot < counter) {
         (n = recv(data->socket, buffer, 1024, 0));
         tot += n;
-        printf("%s %d \n", buffer, n);
         int a = vlozitDoSuboruData(buffer, n, "suborcopy.txt");
         if (a != 1) {
             printf("Chyba");
@@ -833,13 +822,11 @@ void *prijmiData(void *datas) {
         if (strcmp(contact, "exit") == 0) {
             break;
         }
-        printf("%s", contact);
 
         int nasielSA = 0;
         for (int i = 0; i < pocet; ++i) {
             if (strcmp(poleKlientov[i]->login, contact) == 0) {
                 nasielSA = 1;
-                printf("Nasiel sa klient\n");
                 char nazovSuboru[100];
                 bzero(nazovSuboru, 100);
                 char buff[256] = {0};
@@ -849,9 +836,7 @@ void *prijmiData(void *datas) {
                 fp = fopen("suborcopy.txt", "r");
                 while (fgetc(fp) != EOF)
                     count++;
-                printf("there are %d letters", count);
                 fclose(fp);
-                printf("1\n");
                 FILE *subor;
                 subor = fopen("suborcopy.txt", "rb");
                 n = write(poleKlientov[i]->socket, &count, sizeof(count));
@@ -859,7 +844,6 @@ void *prijmiData(void *datas) {
                     perror("Error writing to socket");
                     return NULL;
                 }
-                printf("som tu \n");
                 if (subor != NULL) {
                     while ((n = fread(buff, 1, sizeof(buff), subor)) >= count) {
                         send(poleKlientov[i]->socket, buff, n, 0);
@@ -943,7 +927,6 @@ void *spravySPriatelom(void *datas) {
             if (subor != NULL) {
                 while ((n = fread(buff, 1, sizeof(buff), subor)) >= count) {
                     send(datac->socket, buff, n, 0);
-                    printf("%s %d \n", buff, n);
                 }
             }
             fclose(subor);
@@ -973,7 +956,7 @@ void *spravySPriatelom(void *datas) {
 
 void hlavneMenu(DATAC *data) {
 
-    printf("Som v hlavnom menu \n");
+    printf("Používateľ %s je v hlavnom menu\n",data->login);
 
     int poziadavka;
     int n = read(data->socket, &poziadavka, sizeof(poziadavka));
@@ -981,7 +964,7 @@ void hlavneMenu(DATAC *data) {
         perror("Error reading from socket");
         return;
     }
-    printf("%d \n", poziadavka);
+    printf("Požiadavka: %d \n", poziadavka);
     if (poziadavka == 0) {
         close(data->socket);
         free(data);
