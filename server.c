@@ -343,6 +343,7 @@ void *komunikacia(void *data) {
     while (1) {
 
         char contact[100];
+        bzero(contact, 99);
         n = read(newsockfd, contact, 99);
         if (n < 0) {
             perror("Error reading from socket");
@@ -1104,48 +1105,63 @@ void hlavneMenu(DATAC *data) {
     printf("%d \n", poziadavka);
     if (poziadavka == 0) {
         close(data->socket);
+        free(data);
     } else if (poziadavka == 1) {
         pthread_t vlakno_registracia;
         pthread_create(&vlakno_registracia, NULL, &registration, (void *) data);
+        pthread_join(vlakno_registracia, NULL);
     } else if (poziadavka == 2) {
         pthread_t vlakno_prihlasenie;
         pthread_create(&vlakno_prihlasenie, NULL, &prihlasenie, (void *) data);
+        pthread_join(vlakno_prihlasenie, NULL);
     } else if (poziadavka == 5) {
         pthread_t vlakno;
         pthread_create(&vlakno, NULL, &komunikacia, (void *) data);
+        pthread_join(vlakno, NULL);
     } else if (poziadavka == 3) {
         pthread_t vlakno_odhlasenie;
         pthread_create(&vlakno_odhlasenie, NULL, &odhlasenie, (void *) data);
+        pthread_join(vlakno_odhlasenie, NULL);
     } else if (poziadavka == 4) {
         pthread_t vlakno_zrusenie;
         pthread_create(&vlakno_zrusenie, NULL, &zrusitUcet, (void *) data);
+        pthread_join(vlakno_zrusenie, NULL);
     } else if (poziadavka == 13) {
         pthread_t vlakno_pridanie;
         pthread_create(&vlakno_pridanie, NULL, &pridajPriatelov, (void *) data);
+        pthread_join(vlakno_pridanie, NULL);
     } else if (poziadavka == 15) {
         pthread_t vlakno_odobrania;
         pthread_create(&vlakno_odobrania, NULL, &odoberPriatelov, (void *) data);
+        pthread_join(vlakno_odobrania, NULL);
     } else if (poziadavka == 14) {
         pthread_t vlakno_ziadosti;
         pthread_create(&vlakno_ziadosti, NULL, &pozriZiadosti, (void *) data);
+        pthread_join(vlakno_ziadosti, NULL);
     } else if (poziadavka == 7) {
         pthread_t skupinovka;
         pthread_create(&skupinovka, NULL, &vytvorSkupKonverzaciu, (void *) data);
+        pthread_join(skupinovka, NULL);
     } else if (poziadavka == 9) {
         pthread_t vlakno_data;
         pthread_create(&vlakno_data, NULL, &prijmiData, (void *) data);
+        pthread_join(vlakno_data, NULL);
     } else if (poziadavka == 8) {
         pthread_t vlakno_skupina;
         pthread_create(&vlakno_skupina, NULL, &spravySkupinovaKonv, (void *) data);
+        pthread_join(vlakno_skupina, NULL);
     } else if (poziadavka == 11) {
         pthread_t vlakno_sifrovanie;
         pthread_create(&vlakno_sifrovanie, NULL, &sifrovaneSpravy, (void *) data);
+        pthread_join(vlakno_sifrovanie, NULL);
     } else if (poziadavka == 12) {
         pthread_t vlakno_desifrovanie;
         pthread_create(&vlakno_desifrovanie, NULL, &desifrovanieSpravy, (void *) data);
+        pthread_join(vlakno_desifrovanie, NULL);
     } else if (poziadavka == 6) {
         pthread_t vlakno_spravySPriatelom;
         pthread_create(&vlakno_spravySPriatelom, NULL, &spravySPriatelom, (void *) data);
+        pthread_join(vlakno_spravySPriatelom, NULL);
     } else {
         hlavneMenu(data);
     }
@@ -1197,4 +1213,6 @@ int mainServer(int argc, char *argv[]) {
         hlavneMenu(client);
 
     }
+    pthread_mutex_destroy(&mutex);
+    close(sockfd);
 }
