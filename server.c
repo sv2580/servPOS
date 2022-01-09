@@ -415,12 +415,11 @@ void *prihlasenie(void *datas) {
         if (n < 0) {
             perror("Error reading from socket");
         }
-        printf("Som tu \n");
-        trim(login, 100);
+        /*trim(login, 100);
         if (strcmp(login, "exit") == 0) {
             hlavneMenu(data);
             return NULL;
-        }
+        }*/
         strcpy((data->login), login);
         sprintf(buffer, "Here is the login: %s\n", (data->login));
 
@@ -429,6 +428,7 @@ void *prihlasenie(void *datas) {
         if (n < 0) {
             perror("Error reading from socket");
         }
+        printf("%s \n",password);
         trim(password, 100);
         if (strcmp(login, "exit") == 0) {
             hlavneMenu(data);
@@ -479,7 +479,6 @@ void *prihlasenie(void *datas) {
 
     while (fgetc(fp) != EOF)
         count++;
-
 
     fclose(fp);
     n = write(data->socket, &count, sizeof(count));
